@@ -1,0 +1,94 @@
+# LaTeX auxiliary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.idx
+*.ind
+*.ilg
+*.synctex.gz
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.fot
+*.cb
+*.cb2
+*.figlist
+*.makefile
+*.lof
+*.lot
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.lol
+*.nav
+*.snm
+*.vrb
+*.xdy
+*.upa
+*.upb
+
+# Editor temporary files
+*~
+*.swp
+*.tmp
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+dist/
+build/
+
+# Go test files
+*.test
+*.out
+
+# Go module files
+go.sum
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Configuration files (may contain sensitive data)
+config.json
+*.config
