@@ -1,0 +1,39 @@
+\section{Phase 2: Development for parsing tools}
+
+This phase will focus on the actual development of the SwayLayoutManager tool, specifically on the parsing of the JSON presets that will be used to save layouts. This phase will be the first code implementation phase, where we will start writing the code that will form the basis of the project, taking into consideration the programming language and libraries selected in phase 1.
+
+\subsection{Save Command Implementation}
+
+The \texttt{swaylayoutmgr save <name>} command is the core functionality that captures the current state of all active workspaces and saves it as a named layout preset. This command will be implemented with the following detailed specification:
+
+\subsubsection{Command Execution Flow}
+
+\begin{enumerate}
+    \item \textbf{Workspace Discovery:} Execute \texttt{swaymsg -t get\_tree | jq}(to be determined) to obtain the current layout tree and identify all active workspaces along with their contained windows.
+    \item \textbf{Data Parsing:} Parse the JSON output to extract relevant information for each window in the specified workspaces, including:
+    \begin{itemize}
+        \item Application identifier (\texttt{app\_id} for Wayland apps, \texttt{class} for X11 apps)
+        \item Window title (\texttt{name} field) for additional matching criteria
+        \item Workspace number/name (\texttt{workspace})
+        \item Container layout type (\texttt{layout}: \texttt{splith}, \texttt{splitv}, \texttt{tabbed}, \texttt{stacked})
+        \item Relative position within parent container (\texttt{rect} coordinates and sibling order)
+        \item Workspace representation
+        \item Window dimensions and floating status (\texttt{floating}, \texttt{rect})
+        \item Output/monitor association
+    \end{itemize}
+    \item \textbf{Preset Storage:} Save the structured data as a JSON file in \texttt{\~{}/.config/swaylayoutmanager/presets/<name>.json} with metadata including creation timestamp and sway version compatibility.
+    \item \textbf{Validation:} Verify the preset file is valid JSON and contains all necessary fields before confirming successful save operation with log output.
+\end{enumerate}
+
+\subsubsection{Error Handling Requirements}
+\begin{itemize}
+    \item Check if preset name already exists and prompt for overwrite confirmation
+    \item Validate that sway IPC socket is accessible (to be determined)
+    \item Handle cases where some applications don't have reliable identifiers (to be determined)
+    \item Create configuration directory structure if it doesn't exist
+    \item Provide meaningful error messages for troubleshooting
+\end{itemize}
+
+\subsubsection{JSON Structure Design}
+
+The saved preset file will contain structured data that enables accurate restoration of workspace layouts, including all necessary metadata for future compatibility and validation.
