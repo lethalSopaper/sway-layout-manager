@@ -1,0 +1,22 @@
+Sway Layout Manager - Available targets:
+
+  build         Build the application
+  build-all     Build for multiple platforms
+  install       Install binary to /usr/local/bin
+  uninstall     Remove installed binary
+  test          Run tests
+  test-coverage Run tests with coverage report
+  lint          Run code linter
+  fmt           Format code
+  tidy          Tidy dependencies
+  clean         Clean build artifacts
+  dev           Development build
+  test-cli      Test basic CLI functionality
+  run           Run application (use ARGS=... for arguments)
+  help          Show this help
+
+Examples:
+  make build
+  make install
+  make run ARGS='save test-layout'
+  make test-cli
