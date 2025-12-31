@@ -18,7 +18,7 @@ type Node struct {
 	Visible bool `json:"visible"`
 	Shell string `json:"shell,omitempty"`
 	Inhibit bool `json:"inhibit_idle"`
-	Idle bool `json:"idle_inhibitors"`
+	Idle interface{} `json:"idle_inhibitors,omitempty"`
 	Window int `json:"window,omitempty"`
 	WindowProperties *WindowProps `json:"window_properties,omitempty"`
 	Nodes []Node `json:"nodes,omitempty"`
