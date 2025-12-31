@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-
 	"github.com/lidsol/sway-layout-manager/internal/config"
 	"github.com/lidsol/sway-layout-manager/internal/layout"
 	"github.com/lidsol/sway-layout-manager/internal/sway"
