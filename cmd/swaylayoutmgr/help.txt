@@ -1,0 +1,20 @@
+Sway Layout Manager 0.1.0-dev
+Manage and restore Sway window layouts
+
+Usage:
+  sway-layout-manager <command> [arguments]
+
+Commands:
+  save [name]    Save current layout (generates name if not provided)
+  list           List all saved layout presets
+  delete <name>  Delete a saved layout preset
+
+Options:
+  --version, -v  Show version information
+  --help, -h     Show this help message
+
+Examples:
+  sway-layout-manager save my-workspace
+  sway-layout-manager save
+  sway-layout-manager list
+  sway-layout-manager delete my-workspace
