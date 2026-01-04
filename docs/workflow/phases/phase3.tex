@@ -1,0 +1,41 @@
+\section{Phase 3: Development for Layout Restoration}
+
+This phase will focus on implementing the layout restoration functionality of the SwayLayoutManager tool. By building with the parsing and saving capabilities developed in phase 2, this phase will implement the \texttt{load} command that reads saved presets and reconstructs workspace layouts by launching applications and positioning them according to the saved configuration.
+
+\subsection{Load Command Implementation}
+
+The \texttt{swaylayoutmgr load <name>} command is the complementary functionality to the save command, enabling users to restore previously saved workspace layouts. This command will be implemented with the following detailed specification:
+
+\subsubsection{Command Execution Flow}
+
+\begin{enumerate}
+    \item \textbf{Preset Loading:} Read the configuration file from \texttt{\~{}/.config/swaylayoutmanager/presets/<name>.json} and parse the JSON structure to extract the saved layout information.
+    \item \textbf{Workspace Restoration:} Iterate over each workspace defined in the preset and for each application window:
+    \begin{itemize}
+        \item Switch to the target workspace using \texttt{swaymsg workspace number <N>}
+        \item Check if the application is already running by querying \texttt{app\_id}/\texttt{class}
+        \item Launch the application using \texttt{swaymsg exec <command>} if not already running
+        \item Wait for the window to appear (configurable timeout)
+        \item Use sway's criteria selection \texttt{[app\_id="..." title="..."]} to focus the specific window
+        \item Apply positioning commands to move and resize the window according to saved coordinates
+        \item Restore floating state if applicable (\texttt{swaymsg floating enable/disable})
+        \item Set the workspace layout mode (\texttt{splith}, \texttt{splitv}, \texttt{tabbed}, or \texttt{stacked})
+    \end{itemize}
+    \item \textbf{Layout Reconstruction:} Apply the saved layout structure by recreating container hierarchies and positioning windows according to their saved \texttt{rect} coordinates and sibling order.
+    \item \textbf{Verification:} Query the current layout tree to verify successful restoration and log any discrepancies or applications that failed to launch.
+\end{enumerate}
+
+\subsubsection{Error Handling Requirements}
+\begin{itemize}
+    \item Check if preset file exists before attempting to load
+    \item Validate JSON structure and presence of all required fields
+    \item Handle missing applications gracefully by logging warnings and continuing with remaining applications
+    \item Implement timeout handling for applications that fail to launch or don't create windows within expected time
+    \item Provide fallback positioning strategies if exact layout reconstruction fails (to be determined)
+    \item Handle version compatibility issues with presets created using different sway versions (to be determined)
+    \item Provide detailed error messages and restoration reports for troubleshooting
+\end{itemize}
+
+\subsubsection{Implementation Considerations}
+
+The load command will need to handle asynchronous application launches and implement proper synchronization mechanisms to ensure windows are fully initialized before applying layout commands.
