@@ -41,6 +41,7 @@ type ContainerLayout struct {
 	WindowTitle string `json:"window_title,omitempty"`
 	Shell string `json:"shell,omitempty"`
 	PID int `json:"pid,omitempty"`
+	ExecCommand string `json:"exec_command,omitempty"`
 	Floating string `json:"floating,omitempty"`
 	Fullscreen int `json:"fullscreen,omitempty"`
 	Rect Rect `json:"rect"`

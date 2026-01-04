@@ -120,6 +120,8 @@ func TestLayoutTypes(t *testing.T) {
 				{
 					Type:   "con",
 					Layout: "splitv",
+					PID: 67890,
+					ExecCommand: "firefox",
 					Rect: layout.Rect{
 						X:      0,
 						Y:      0,
@@ -149,6 +151,50 @@ func TestLayoutTypes(t *testing.T) {
 		}
 		if len(unmarshaled.Containers) != 1 {
 			t.Errorf("Expected 1 container, got %d", len(unmarshaled.Containers))
+		}
+	})
+
+	t.Run("ContainerLayout with ExecCommand JSON marshaling", func(t *testing.T) {
+		container := layout.ContainerLayout{
+			Type: "con",
+			Layout: "splith",
+			PID: 12345,
+			ExecCommand: "/usr/bin/firefox --profile /home/user/.mozilla",
+			AppID: "firefox",
+			WindowTitle: "Mozilla Firefox",
+			Rect: layout.Rect{
+				X: 100,
+				Y: 200,
+				Width: 1280,
+				Height: 720,
+			},
+			WindowRect: layout.Rect{
+				X: 0,
+				Y: 0,
+				Width: 1280,
+				Height: 720,
+			},
+		}
+
+		jsonData, err := json.Marshal(container)
+		if err != nil {
+			t.Fatalf("Failed to marshal container: %v", err)
+		}
+
+		var unmarshaled layout.ContainerLayout
+		err = json.Unmarshal(jsonData, &unmarshaled)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal container: %v", err)
+		}
+
+		if unmarshaled.PID != container.PID {
+			t.Errorf("Expected PID %d, got %d", container.PID, unmarshaled.PID)
+		}
+		if unmarshaled.ExecCommand != container.ExecCommand {
+			t.Errorf("Expected ExecCommand '%s', got '%s'", container.ExecCommand, unmarshaled.ExecCommand)
+		}
+		if unmarshaled.AppID != container.AppID {
+			t.Errorf("Expected AppID '%s', got '%s'", container.AppID, unmarshaled.AppID)
 		}
 	})
 }

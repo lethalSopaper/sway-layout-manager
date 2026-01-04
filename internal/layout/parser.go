@@ -1,7 +1,10 @@
 package layout
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 	"github.com/lidsol/sway-layout-manager/internal/sway"
 )
@@ -16,6 +19,26 @@ func NewParser(client *sway.Client) *Parser {
 	return &Parser{
 		swayClient: client,
 	}
+}
+
+// reads the command line used to launch a process from /proc
+func getProcessCommand(pid int) string {
+	if pid <= 0 {
+		return ""
+	}
+
+	cmdlinePath := fmt.Sprintf("/proc/%d/cmdline", pid)
+	data, err := os.ReadFile(cmdlinePath)
+	if err != nil {
+		// process might have exited or no permission
+		return ""
+	}
+
+	// replace null bytes with spaces for a readable command
+	cmdline := string(bytes.ReplaceAll(data, []byte{0}, []byte{' '}))
+	cmdline = strings.TrimSpace(cmdline)
+
+	return cmdline
 }
 
 // captures the current Sway layout
@@ -137,6 +160,7 @@ func (p *Parser) parseContainers(node *sway.Node, containers *[]ContainerLayout)
 			AppID: node.AppID,
 			Shell: node.Shell,
 			PID: node.PID,
+			ExecCommand: getProcessCommand(node.PID),
 			Floating: node.Floating,
 			Fullscreen: node.Fullscreen,
 			Focused: node.Focused,

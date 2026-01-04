@@ -38,26 +38,28 @@ func createTestPreset() *layout.Preset {
 		SwayVersion: "1.11",
 		Outputs: []layout.OutputLayout{
 			{
-				Name:   "DP-1",
+				Name: "DP-1",
 				Active: true,
-				Rect:   layout.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
+				Rect: layout.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
 			},
 		},
 		Workspaces: []layout.WorkspaceLayout{
 			{
-				Num:    1,
-				Name:   "1",
+				Num: 1,
+				Name: "1",
 				Output: "DP-1",
 				Layout: "splith",
 				Containers: []layout.ContainerLayout{
 					{
-						ID:          123,
-						Type:        "con",
-						Layout:      "none",
+						ID: 123,
+						Type: "con",
+						Layout: "none",
+						PID: 123,
+						ExecCommand: "test-app",
 						WindowTitle: "Test Window",
-						Rect:        layout.Rect{X: 0, Y: 0, Width: 960, Height: 1080},
-						WindowRect:  layout.Rect{X: 0, Y: 0, Width: 960, Height: 1080},
-						Children:    []layout.ContainerLayout{},
+						Rect: layout.Rect{X: 0, Y: 0, Width: 960, Height: 1080},
+						WindowRect: layout.Rect{X: 0, Y: 0, Width: 960, Height: 1080},
+						Children: []layout.ContainerLayout{},
 					},
 				},
 			},
