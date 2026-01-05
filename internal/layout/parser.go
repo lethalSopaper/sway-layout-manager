@@ -27,6 +27,12 @@ func getProcessCommand(pid int) string {
 		return ""
 	}
 
+	// check if this is a Flatpak app
+	flatpakID := detectFlatpakApp(pid);
+	if flatpakID != "" {
+		return fmt.Sprintf("flatpak run %s", flatpakID)
+	}
+
 	cmdlinePath := fmt.Sprintf("/proc/%d/cmdline", pid)
 	data, err := os.ReadFile(cmdlinePath)
 	if err != nil {
@@ -39,6 +45,43 @@ func getProcessCommand(pid int) string {
 	cmdline = strings.TrimSpace(cmdline)
 
 	return cmdline
+}
+
+// if a process is a Flatpak app, returns its app ID
+func detectFlatpakApp(pid int) string {
+	environPath := fmt.Sprintf("/proc/%d/environ", pid)
+	data, err := os.ReadFile(environPath)
+	if err != nil {
+		return ""
+	}
+
+	// environ uses null bytes as separators
+	envVars := bytes.Split(data, []byte{0})
+	for _, envVar := range envVars {
+		if bytes.HasPrefix(envVar, []byte("FLATPAK_ID=")) {
+			appID := string(bytes.TrimPrefix(envVar, []byte("FLATPAK_ID=")))
+			return appID
+		}
+	}
+
+	// fallback: check root directory for .flatpak-info
+	rootPath := fmt.Sprintf("/proc/%d/root/.flatpak-info", pid)
+	if _, err := os.Stat(rootPath); err == nil {
+		infoData, err := os.ReadFile(rootPath)
+		if err == nil {
+			// parse for Application section with name=
+			lines := strings.Split(string(infoData), "\n")
+			for _, line := range lines {
+				if strings.HasPrefix(line, "name=") {
+					appID := strings.TrimPrefix(line, "name=")
+					appID = strings.TrimSpace(appID)
+					return appID
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 // captures the current Sway layout

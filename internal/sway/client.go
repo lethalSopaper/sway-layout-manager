@@ -6,7 +6,7 @@ import (
 	"os/exec"
 )
 
-// Client handles communication via swaymsg
+// handles communication via swaymsg
 type Client struct {
 	swayMsgPath string
 }
@@ -70,4 +70,14 @@ func (c *Client) GetVersion() (*Version, error) {
 	}
 
 	return &version, nil
+}
+
+// executes a Sway IPC command
+func (c *Client) RunCommand(command string) error {
+	cmd := exec.Command(c.swayMsgPath, command)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("sway command failed: %s: %w", string(output), err)
+	}
+	return nil
 }
