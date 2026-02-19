@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 	"github.com/lidsol/sway-layout-manager/internal/sway"
@@ -28,53 +29,118 @@ func getProcessCommand(pid int) string {
 	}
 
 	// check if this is a Flatpak app
-	flatpakID := detectFlatpakApp(pid);
-	if flatpakID != "" {
+	if flatpakID := detectFlatpakApp(pid); flatpakID != "" {
 		return fmt.Sprintf("flatpak run %s", flatpakID)
 	}
 
+	// check if this is a Snap app
+	if snapName := detectSnapApp(pid); snapName != "" {
+		return fmt.Sprintf("snap run %s", snapName)
+	}
+
+	// fallback to reading cmdline
 	cmdlinePath := fmt.Sprintf("/proc/%d/cmdline", pid)
 	data, err := os.ReadFile(cmdlinePath)
 	if err != nil {
-		// process might have exited or no permission
 		return ""
 	}
 
-	// replace null bytes with spaces for a readable command
-	cmdline := string(bytes.ReplaceAll(data, []byte{0}, []byte{' '}))
-	cmdline = strings.TrimSpace(cmdline)
+	// replace null bytes with spaces and trim in one operation
+	return strings.TrimSpace(string(bytes.ReplaceAll(data, []byte{0}, []byte{' '})))
+}
 
-	return cmdline
+// regex for extracting Flatpak app ID from cgroup path
+var flatpakCgroupRegex = regexp.MustCompile(`app-flatpak-([a-zA-Z0-9._-]+)-\d+\.scope`)
+
+// regex for extracting Snap app name from cgroup path
+var snapCgroupRegex = regexp.MustCompile(`snap\.([a-z0-9-]+)(?:\.[a-z0-9-]+)?\.(?:scope|service)`)
+
+// if a process is a Snap app, returns its snap name
+func detectSnapApp(pid int) string {
+	// first method: check cgroup
+	cgroupPath := fmt.Sprintf("/proc/%d/cgroup", pid)
+	if cgroupData, err := os.ReadFile(cgroupPath); err == nil {
+		if matches := snapCgroupRegex.FindSubmatch(cgroupData); len(matches) > 1 {
+			return string(matches[1])
+		}
+	}
+
+	// second method: check SNAP_NAME or SNAP_INSTANCE_NAME environment variable
+	environPath := fmt.Sprintf("/proc/%d/environ", pid)
+	if data, err := os.ReadFile(environPath); err == nil {
+		for _, envVar := range bytes.Split(data, []byte{0}) {
+			if bytes.HasPrefix(envVar, []byte("SNAP_INSTANCE_NAME=")) {
+				return string(bytes.TrimPrefix(envVar, []byte("SNAP_INSTANCE_NAME=")))
+			}
+			if bytes.HasPrefix(envVar, []byte("SNAP_NAME=")) {
+				return string(bytes.TrimPrefix(envVar, []byte("SNAP_NAME=")))
+			}
+		}
+	}
+
+	// last method: check if executable path starts with /snap/
+	cmdlinePath := fmt.Sprintf("/proc/%d/cmdline", pid)
+	if cmdlineData, err := os.ReadFile(cmdlinePath); err == nil {
+		cmdline := string(cmdlineData)
+		if strings.HasPrefix(cmdline, "/snap/") {
+			// Extract snap name from path like /snap/<snap-name>/current/...
+			parts := strings.Split(cmdline, "/")
+			if len(parts) >= 3 && parts[1] == "snap" {
+				snapName := parts[2]
+				// Remove null bytes and validate it looks like a snap name
+				snapName = strings.Split(snapName, "\x00")[0]
+				if snapName != "" && snapName != "bin" {
+					return snapName
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 // if a process is a Flatpak app, returns its app ID
 func detectFlatpakApp(pid int) string {
-	environPath := fmt.Sprintf("/proc/%d/environ", pid)
-	data, err := os.ReadFile(environPath)
-	if err != nil {
-		return ""
-	}
-
-	// environ uses null bytes as separators
-	envVars := bytes.Split(data, []byte{0})
-	for _, envVar := range envVars {
-		if bytes.HasPrefix(envVar, []byte("FLATPAK_ID=")) {
-			appID := string(bytes.TrimPrefix(envVar, []byte("FLATPAK_ID=")))
-			return appID
+	// first method: check cgroup
+	cgroupPath := fmt.Sprintf("/proc/%d/cgroup", pid)
+	if cgroupData, err := os.ReadFile(cgroupPath); err == nil {
+		if matches := flatpakCgroupRegex.FindSubmatch(cgroupData); len(matches) > 1 {
+			appID := string(matches[1])
+			if strings.Contains(appID, ".") {
+				return appID
+			}
 		}
 	}
 
-	// fallback: check root directory for .flatpak-info
-	rootPath := fmt.Sprintf("/proc/%d/root/.flatpak-info", pid)
-	if _, err := os.Stat(rootPath); err == nil {
-		infoData, err := os.ReadFile(rootPath)
-		if err == nil {
-			// parse for Application section with name=
-			lines := strings.Split(string(infoData), "\n")
-			for _, line := range lines {
-				if strings.HasPrefix(line, "name=") {
-					appID := strings.TrimPrefix(line, "name=")
-					appID = strings.TrimSpace(appID)
+	// second method: check environment variables for FLATPAK_ID
+	environPath := fmt.Sprintf("/proc/%d/environ", pid)
+	if data, err := os.ReadFile(environPath); err == nil {
+		// environ uses null bytes as separators
+		for _, envVar := range bytes.Split(data, []byte{0}) {
+			if bytes.HasPrefix(envVar, []byte("FLATPAK_ID=")) {
+				return string(bytes.TrimPrefix(envVar, []byte("FLATPAK_ID=")))
+			}
+		}
+	}
+
+	// last methosd: check the .flatpak-info file
+	flatpakInfoPath := fmt.Sprintf("/proc/%d/root/.flatpak-info", pid)
+	if infoData, err := os.ReadFile(flatpakInfoPath); err == nil {
+		lines := bytes.Split(infoData, []byte{'\n'})
+		inApplicationSection := false
+		for _, line := range lines {
+			line = bytes.TrimSpace(line)
+			if bytes.Equal(line, []byte("[Application]")) {
+				inApplicationSection = true
+				continue
+			}
+			if bytes.HasPrefix(line, []byte{'['}) {
+				inApplicationSection = false
+				continue
+			}
+			if inApplicationSection && bytes.HasPrefix(line, []byte("name=")) {
+				appID := string(bytes.TrimPrefix(line, []byte("name=")))
+				if appID != "" {
 					return appID
 				}
 			}

@@ -43,6 +43,8 @@ func main() {
 	switch command {
 	case "save":
 		handleSave(parser, manager, os.Args[2:])
+	case "load":
+		handleLoad(manager, swayClient, os.Args[2:])
 	case "list":
 		handleList(manager)
 	case "delete":
@@ -99,6 +101,55 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
 	fmt.Printf("- Outputs: %d\n", len(preset.Outputs))
 	fmt.Printf("- Workspaces: %d\n", len(preset.Workspaces))
 	fmt.Printf("- Containers: %d\n", totalContainers)
+}
+
+func handleLoad(manager *preset.Manager, swayClient *sway.Client, args []string) {
+	if len(args) == 0 {
+		fmt.Fprintf(os.Stderr, "Error: Please specify a preset name to load\n")
+		fmt.Fprintf(os.Stderr, "Usage: sway-layout-manager load <name>\n")
+		os.Exit(1)
+	}
+	name := args[0]
+
+	// check if preset exists
+	if !manager.Exists(name) {
+		fmt.Fprintf(os.Stderr, "Error: Preset '%s' not found\n", name)
+		os.Exit(1)
+	}
+
+	// load the preset
+	preset, err := manager.Load(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to load preset: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Restoring layout '%s'...\n", name)
+
+	// restore the layout
+	restorer := layout.NewRestorer(swayClient)
+	result, err := restorer.Restore(preset)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to restore layout: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\nLayout '%s' restoration complete:\n", name)
+	fmt.Printf("- Workspaces restored: %d\n", result.WorkspacesRestored)
+	fmt.Printf("- Applications launched: %d\n", result.ApplicationsLaunched)
+
+	// failed applications
+	if result.ApplicationsFailed > 0 {
+		fmt.Printf("- Applications failed: %d\n", result.ApplicationsFailed)
+	}
+
+	// warnings/errors
+	if len(result.Errors) > 0 {
+		fmt.Printf("\nWarnings/Errors encountered:\n")
+		for _, err := range result.Errors {
+			fmt.Printf("  - %v\n", err)
+		}
+	}
 }
 
 func handleList(manager *preset.Manager) {
