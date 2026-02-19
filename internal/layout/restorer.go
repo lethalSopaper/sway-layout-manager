@@ -12,7 +12,6 @@ type Restorer struct {
 	client *sway.Client
 	errors []error // non-fatal errors during restoration
 	ReuseExistingWindows bool
-	forWindowRules []string // track for_window rules to remove after restoration
 }
 
 // contains the outcome of a restoration operation
@@ -37,13 +36,22 @@ func (r *Restorer) Restore(preset *Preset) (*RestoreResult, error) {
 	}
 
 	r.errors = []error{}
-	r.forWindowRules = []string{} // reset rules list
 	result := &RestoreResult{}
 
-	// restore each workspace without switching focus
+	// save current workspace to return to it after restoration
+	workspaces, err := r.client.GetWorkspaces()
+	if err == nil {
+		for _, ws := range workspaces {
+			if ws.Focused {
+				defer r.client.RunCommand(fmt.Sprintf("workspace number %d", ws.Num))
+				break
+			}
+		}
+	}
+
+	// restore each workspace
 	for _, workspace := range preset.Workspaces {
-		if err := r.restoreWorkspaceInBackground(&workspace, result); err != nil {
-			// collect error but continue with other workspaces
+		if err := r.restoreWorkspace(&workspace, result); err != nil {
 			if workspace.Num < 0 {
 				r.errors = append(r.errors, fmt.Errorf("workspace '%s': %w", workspace.Name, err))
 			} else {
@@ -59,21 +67,58 @@ func (r *Restorer) Restore(preset *Preset) (*RestoreResult, error) {
 		r.errors = append(r.errors, fmt.Errorf("verification: %w", err))
 	}
 
-	// remove all for_window rules after restoration is complete
-	r.removeForWindowRules()
-
 	result.Errors = r.errors
 	return result, nil
 }
 
-// restores a workspace in the background without switching focus
-func (r *Restorer) restoreWorkspaceInBackground(workspace *WorkspaceLayout, result *RestoreResult) error {
+// restores a workspace by switching to it and arranging windows directly
+func (r *Restorer) restoreWorkspace(workspace *WorkspaceLayout, result *RestoreResult) error {
+	if len(workspace.Containers) == 0 {
+		return nil
+	}
+
+	// switch to the target workspace
+	workspaceID := r.getWorkspaceIdentifier(workspace)
+	if err := r.client.RunCommand(fmt.Sprintf("workspace %s", workspaceID)); err != nil {
+		return fmt.Errorf("failed to switch to workspace: %w", err)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	// restore each top-level container
 	for i := range workspace.Containers {
-		if err := r.restoreContainerInBackground(&workspace.Containers[i], workspace, result); err != nil {
-			// collect error but continue with other containers
-			containerID := workspace.Containers[i].AppID
+		container := &workspace.Containers[i]
+
+		// if not the first container, prepare for a sibling split
+		if i > 0 {
+			// wait for previous containers
+			prevContainer := &workspace.Containers[i-1]
+			r.waitForContainerWindows(prevContainer, 5*time.Second)
+
+			// delay to ensure window appearance
+			time.Sleep(300 * time.Millisecond)
+
+			// refocus the workspace to ensure
+			r.client.RunCommand(fmt.Sprintf("workspace %s", workspaceID))
+			time.Sleep(100 * time.Millisecond)
+
+			// ensures the next split happens at the workspace level
+			r.client.RunCommand("focus parent")
+			time.Sleep(50 * time.Millisecond)
+
+			// split
+			splitDir := "h"
+			if workspace.Layout == "splitv" {
+				splitDir = "v"
+			}
+			r.client.RunCommand(fmt.Sprintf("split %s", splitDir))
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		// restore this container
+		if err := r.restoreContainerDirect(container, result); err != nil {
+			containerID := container.AppID
 			if containerID == "" {
-				containerID = workspace.Containers[i].WindowClass
+				containerID = container.WindowClass
 			}
 			if containerID != "" {
 				r.errors = append(r.errors, fmt.Errorf("container '%s': %w", containerID, err))
@@ -87,88 +132,128 @@ func (r *Restorer) restoreWorkspaceInBackground(workspace *WorkspaceLayout, resu
 	return nil
 }
 
-// recursively restores containers in the background without focus changes
-func (r *Restorer) restoreContainerInBackground(container *ContainerLayout, workspace *WorkspaceLayout, result *RestoreResult) error {
-	// if container has an executable command
-	if container.ExecCommand != "" {
-		return r.launchApplicationInBackground(container, workspace, result)
+// waits for all windows in a container to appear
+func (r *Restorer) waitForContainerWindows(container *ContainerLayout, timeout time.Duration) {
+	// collect all windows that should appear
+	var windows []*ContainerLayout
+	r.collectLeafWindows(container, &windows)
+
+	if len(windows) == 0 {
+		return
 	}
 
-	// if this is a parent container with children, restore them recursively
-	if len(container.Children) > 0 {
-		for i := range container.Children {
-			if err := r.restoreContainerInBackground(&container.Children[i], workspace, result); err != nil {
-				// collect error but continue with siblings
-				r.errors = append(r.errors, err)
+	deadline := time.Now().Add(timeout)
+
+	// wait for each window to appear
+	for _, win := range windows {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			break
+		}
+
+		// wait for this specific window with remaining timeout
+		if err := r.waitForWindow(win, remaining); err != nil {
+			if windowID := r.getContainerID(win); windowID != "" {
+				r.errors = append(r.errors, fmt.Errorf("window '%s' may not have appeared: %w", windowID, err))
 			}
 		}
 	}
+}
+
+// restores a container directly on the currently focused workspace
+func (r *Restorer) restoreContainerDirect(container *ContainerLayout, result *RestoreResult) error {
+	// if this container is a single window, launch it
+	if container.ExecCommand != "" {
+		return r.launchApplicationDirect(container, result)
+	}
+
+	// if this is a grouping container (tabbed/stacked), restore specially
+	if container.Layout == "tabbed" || container.Layout == "stacked" {
+		return r.restoreGroupedContainerDirect(container, result)
+	}
+
+	// for split containers, restore children
+	for i := range container.Children {
+		if i > 0 {
+			// create split between siblings
+			splitDir := "h"
+			if container.Layout == "splitv" {
+				splitDir = "v"
+			}
+			r.client.RunCommand(fmt.Sprintf("split %s", splitDir))
+		}
+
+		if err := r.restoreContainerDirect(&container.Children[i], result); err != nil {
+			r.errors = append(r.errors, err)
+		}
+	}
+
 	return nil
 }
 
-// launches an application in the background and moves it to the target workspace
-// This mimics Sway's assign command - windows are moved without changing focus
-func (r *Restorer) launchApplicationInBackground(container *ContainerLayout, workspace *WorkspaceLayout, result *RestoreResult) error {
-	if container.ExecCommand == "" {
-		return fmt.Errorf("no exec command available for app_id=%s class=%s", container.AppID, container.WindowClass)
+// restores a grouped container directly
+func (r *Restorer) restoreGroupedContainerDirect(container *ContainerLayout, result *RestoreResult) error {
+	var leafWindows []*ContainerLayout
+	r.collectLeafWindows(container, &leafWindows)
+
+	if len(leafWindows) == 0 {
+		return nil
 	}
 
-	// check if application is already running (only if ReuseExistingWindows is enabled)
-	if r.ReuseExistingWindows && r.isApplicationRunning(container) {
-		// move existing window to correct workspace (doesn't change focus)
-		if err := r.moveWindowToWorkspace(container, workspace); err != nil {
-			windowID := container.AppID
-			if windowID == "" {
-				windowID = container.WindowClass
-			}
-			r.errors = append(r.errors, fmt.Errorf("failed to move existing window '%s': %w", windowID, err))
+	// launch first window
+	if err := r.launchApplicationDirect(leafWindows[0], result); err != nil {
+		return err
+	}
+
+	// set layout to tabbed/stacked on the current container
+	if err := r.client.RunCommand(fmt.Sprintf("layout %s", container.Layout)); err != nil {
+		return fmt.Errorf("failed to set layout: %w", err)
+	}
+
+	// launch remaining windows (they'll automatically join the tabbed/stacked container)
+	for i := 1; i < len(leafWindows); i++ {
+		if err := r.launchApplicationDirect(leafWindows[i], result); err != nil {
+			r.errors = append(r.errors, err)
 		}
+	}
+
+	return nil
+}
+
+// launches an application directly on the current workspace/container
+func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *RestoreResult) error {
+	if container.ExecCommand == "" {
+		return fmt.Errorf("no exec command available")
+	}
+
+	// check if application is already running and reuse if enabled
+	if r.ReuseExistingWindows && r.isApplicationRunning(container) {
 		result.ApplicationsLaunched++
 		return nil
 	}
 
-	criteria := r.buildWindowCriteria(container)
-
-	// Build the target workspace identifier
-	var workspaceTarget string
-	if workspace.Num < 0 {
-		workspaceTarget = workspace.Name
-	} else {
-		workspaceTarget = fmt.Sprintf("number %d", workspace.Num)
-	}
-
-	// Set up for_window rule to auto-move window to target workspace when it spawns
-	// This prevents the window from appearing on the current workspace
-	forWindowCmd := fmt.Sprintf("for_window [%s] move container to workspace %s", criteria, workspaceTarget)
-	if err := r.client.RunCommand(forWindowCmd); err != nil {
-		return fmt.Errorf("failed to set for_window rule: %w", err)
-	}
-
-	// Track this rule so we can remove it later
-	r.forWindowRules = append(r.forWindowRules, criteria)
-
-	// launch the application on the temp workspace
-	execCmd := fmt.Sprintf("exec %s", container.ExecCommand)
-	if err := r.client.RunCommand(execCmd); err != nil {
+	// launch the application
+	if err := r.client.RunCommand(fmt.Sprintf("exec %s", container.ExecCommand)); err != nil {
 		return fmt.Errorf("failed to launch %s: %w", container.ExecCommand, err)
 	}
 
-	// wait for window to appear (it will be auto-moved by the for_window rule)
-	if err := r.waitForWindow(container, 10*time.Second); err != nil {
-		return fmt.Errorf("window did not appear: %w", err)
-	}
-
-	// restore window properties (floating, position, size)
-	if err := r.restoreWindowProperties(container); err != nil {
-		windowID := container.AppID
-		if windowID == "" {
-			windowID = container.WindowClass
-		}
-		r.errors = append(r.errors, fmt.Errorf("failed to restore properties for '%s': %w", windowID, err))
-	}
+	// brief delay to allow window to start
+	time.Sleep(400 * time.Millisecond)
 
 	result.ApplicationsLaunched++
 	return nil
+}
+
+// collects all leaf windows (with exec commands) from a container tree
+func (r *Restorer) collectLeafWindows(container *ContainerLayout, result *[]*ContainerLayout) {
+	if container.ExecCommand != "" {
+		*result = append(*result, container)
+		return
+	}
+
+	for i := range container.Children {
+		r.collectLeafWindows(&container.Children[i], result)
+	}
 }
 
 // checks if an application is already running
@@ -219,52 +304,6 @@ func (r *Restorer) waitForWindow(container *ContainerLayout, timeout time.Durati
 	}
 
 	return fmt.Errorf("timeout waiting for window %s/%s", container.AppID, container.WindowClass)
-}
-
-// moves an existing window to the specified workspace
-func (r *Restorer) moveWindowToWorkspace(container *ContainerLayout, workspace *WorkspaceLayout) error {
-	criteria := r.buildWindowCriteria(container)
-	var moveCmd string
-	if workspace.Num < 0 {
-		// named workspace
-		moveCmd = fmt.Sprintf("[%s] move to workspace %s", criteria, workspace.Name)
-	} else {
-		// numbered workspace
-		moveCmd = fmt.Sprintf("[%s] move to workspace number %d", criteria, workspace.Num)
-	}
-	return r.client.RunCommand(moveCmd)
-}
-
-// restores window properties
-func (r *Restorer) restoreWindowProperties(container *ContainerLayout) error {
-	criteria := r.buildWindowCriteria(container)
-
-	// restore floating state
-	if container.Floating != "" && container.Floating != "auto_off" {
-		floatingCmd := fmt.Sprintf("[%s] floating enable", criteria)
-		if err := r.client.RunCommand(floatingCmd); err != nil {
-			return fmt.Errorf("failed to set floating: %w", err)
-		}
-
-		// for floating windows, restore position and size
-		if container.Rect.Width > 0 && container.Rect.Height > 0 {
-			windowID := container.AppID
-			if windowID == "" {
-				windowID = container.WindowClass
-			}
-			moveCmd := fmt.Sprintf("[%s] move position %d %d", criteria, container.Rect.X, container.Rect.Y)
-			if err := r.client.RunCommand(moveCmd); err != nil {
-				r.errors = append(r.errors, fmt.Errorf("failed to move window '%s': %w", windowID, err))
-			}
-
-			resizeCmd := fmt.Sprintf("[%s] resize set %d %d", criteria, container.Rect.Width, container.Rect.Height)
-			if err := r.client.RunCommand(resizeCmd); err != nil {
-				r.errors = append(r.errors, fmt.Errorf("failed to resize window '%s': %w", windowID, err))
-			}
-		}
-	}
-
-	return nil
 }
 
 // builds a window selection criteria string
@@ -322,10 +361,18 @@ func (r *Restorer) collectContainersWithExec(containers *[]ContainerLayout, resu
 	}
 }
 
-// removes all for_window rules that were set during restoration
-func (r *Restorer) removeForWindowRules() {
-	if err := r.client.RunCommand("reload"); err != nil {
-		// Non-fatal - just log the error
-		r.errors = append(r.errors, fmt.Errorf("failed to reload config to clear for_window rules: %w", err))
+// helper function to get workspace identifier
+func (r *Restorer) getWorkspaceIdentifier(workspace *WorkspaceLayout) string {
+	if workspace.Num < 0 {
+		return workspace.Name
 	}
+	return fmt.Sprintf("number %d", workspace.Num)
+}
+
+// helper function to get container ID
+func (r *Restorer) getContainerID(container *ContainerLayout) string {
+	if container.AppID != "" {
+		return container.AppID
+	}
+	return container.WindowClass
 }
