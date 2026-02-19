@@ -18,6 +18,7 @@ var helpText string
 
 func main() {
 	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "Error: No command specified\n\n")
 		printUsage()
 		os.Exit(1)
 	}
@@ -54,8 +55,8 @@ func main() {
 	case "--help", "-h":
 		printUsage()
 	default:
-		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", command)
-		printUsage()
+		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n", command)
+		fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr --help' to see available commands.\n")
 		os.Exit(1)
 	}
 }
@@ -72,7 +73,7 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
 	// check if preset already exists
 	if manager.Exists(name) {
 		fmt.Fprintf(os.Stderr, "Error: Preset '%s' already exists\n", name)
-		fmt.Fprintf(os.Stderr, "Use a different name or delete the existing preset first.\n")
+		fmt.Fprintf(os.Stderr, "Use a different name or delete it first with: swaylayoutmgr delete %s\n", name)
 		os.Exit(1)
 	}
 
@@ -105,8 +106,9 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
 
 func handleLoad(manager *preset.Manager, swayClient *sway.Client, args []string) {
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: Please specify a preset name to load\n")
-		fmt.Fprintf(os.Stderr, "Usage: sway-layout-manager load <name>\n")
+		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
+		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr load <name>\n")
+		fmt.Fprintf(os.Stderr, "\nRun 'swaylayoutmgr list' to see available presets.\n")
 		os.Exit(1)
 	}
 	name := args[0]
@@ -114,6 +116,7 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, args []string)
 	// check if preset exists
 	if !manager.Exists(name) {
 		fmt.Fprintf(os.Stderr, "Error: Preset '%s' not found\n", name)
+		fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr list' to see available presets.\n")
 		os.Exit(1)
 	}
 
@@ -161,7 +164,7 @@ func handleList(manager *preset.Manager) {
 
 	if len(metadata) == 0 {
 		fmt.Println("No saved layout presets found.")
-		fmt.Println("Use 'sway-layout-manager save [name]' to save your current layout.")
+		fmt.Println("Use 'swaylayoutmgr save [name]' to save your current layout.")
 		return
 	}
 
@@ -178,8 +181,9 @@ func handleList(manager *preset.Manager) {
 
 func handleDelete(manager *preset.Manager, args []string) {
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: Please specify a preset name to delete\n")
-		fmt.Fprintf(os.Stderr, "Usage: sway-layout-manager delete <name>\n")
+		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
+		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr delete <name>\n")
+		fmt.Fprintf(os.Stderr, "\nRun 'swaylayoutmgr list' to see available presets.\n")
 		os.Exit(1)
 	}
 	name := args[0]
@@ -187,6 +191,7 @@ func handleDelete(manager *preset.Manager, args []string) {
 	// check if preset exists
 	if !manager.Exists(name) {
 		fmt.Fprintf(os.Stderr, "Error: Preset '%s' not found\n", name)
+		fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr list' to see available presets.\n")
 		os.Exit(1)
 	}
 

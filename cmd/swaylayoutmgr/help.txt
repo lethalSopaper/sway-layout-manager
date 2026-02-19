@@ -2,10 +2,11 @@ Sway Layout Manager 0.1.0-dev
 Manage and restore Sway window layouts
 
 Usage:
-  sway-layout-manager <command> [arguments]
+  swaylayoutmgr <command> [arguments]
 
 Commands:
-  save [name]    Save current layout (generates name if not provided)
+  save <name>    Save current layout as a preset (auto-generates name if not provided)
+  load <name>    Restore a saved layout preset
   list           List all saved layout presets
   delete <name>  Delete a saved layout preset
 
@@ -14,7 +15,14 @@ Options:
   --help, -h     Show this help message
 
 Examples:
-  sway-layout-manager save my-workspace
-  sway-layout-manager save
-  sway-layout-manager list
-  sway-layout-manager delete my-workspace
+  swaylayoutmgr save my-workspace     # Save current layout with custom name
+  swaylayoutmgr save                  # Save with auto-generated name
+  swaylayoutmgr load my-workspace     # Restore a saved layout
+  swaylayoutmgr list                  # Show all available presets
+  swaylayoutmgr delete my-workspace   # Remove a saved preset
+
+Notes:
+  - Layout restoration preserves container hierarchy (tabbed, stacked, split)
+  - Applications are relaunched in their original workspaces and positions
+  - Floating windows and fullscreen states are restored
+  - Supports Flatpak, Snap, and native applications
