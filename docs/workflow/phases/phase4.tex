@@ -1,0 +1,109 @@
+\newpage
+
+\section{Phase 4: Enhanced Functionality and Flag System}
+
+This phase focuses on refining the layout restoration implementation from Phase 3 and introducing a flexible flag system for workspace operations. The improvements address real-world usage patterns and provide users with fine-grained control over save and load operations.
+
+\subsection{Load Command Implementation Updates}
+
+Starting from Phase 3 documentation, the load command has been refined with the following improvements and clarifications:
+
+\subsubsection{New Implementation Approach}
+
+The final implementation uses a \textbf{direct restoration approach} that differs from the initial specification:
+
+\begin{itemize}
+    \item \textbf{No Explicit Coordinate Positioning:} Instead of applying move/resize commands to match saved coordinates, this implementation uses Sway's automatic tiling system combined with container hierarchy reconstruction.
+    \item \textbf{Sequential Launching:} Applications are launched sequentially into target workspaces, with split commands applied between siblings to maintain proper layout structure.
+\end{itemize}
+
+\subsubsection{Direct Container Restoration}
+
+The \texttt{restoreContainerDirect()} method implements the core restoration logic:
+
+\begin{enumerate}
+    \item For single windows with \texttt{ExecCommand}, launch the application directly using \texttt{exec <command>}
+    \item For grouped containers (tabbed/stacked):
+    \begin{itemize}
+        \item Launch the first window
+        \item Set the container layout mode (\texttt{layout tabbed} or \texttt{layout stacked})
+        \item Launch remaining windows, which automatically join the group
+    \end{itemize}
+    \item For split containers:
+    \begin{itemize}
+        \item Process children sequentially
+        \item Apply \texttt{split h/v} commands between siblings
+        \item Recurse into child containers
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Enhanced Synchronization}
+
+To ensure proper window initialization and layout application:
+
+\begin{itemize}
+    \item \textbf{Deadline-based Timeouts:} \texttt{waitForContainerWindows()} uses a deadline approach (default 5 seconds) to wait for all windows in a container to appear
+    \item \textbf{Strategic Delays:} Brief delays between operations (100-400ms) allow windows to stabilize:
+    \begin{itemize}
+        \item 100ms after workspace switch and split commands
+        \item 300ms between sibling containers
+        \item 400ms after application launch
+    \end{itemize}
+    \item \textbf{Leaf Window Collection:} \texttt{collectLeafWindows()} traverses the container tree to identify all windows requiring launch, enabling proper wait synchronization
+\end{itemize}
+
+\subsubsection{Restoration Reporting}
+
+The \texttt{RestoreResult} struct provides comprehensive restoration feedback:
+
+\begin{itemize}
+    \item \texttt{WorkspacesRestored}: Count of successfully restored workspaces
+    \item \texttt{ApplicationsLaunched}: Number of applications started
+    \item \texttt{ApplicationsFailed}: Count of applications that failed to launch
+    \item \texttt{Errors}: Detailed error list for troubleshooting
+\end{itemize}
+
+Output example:
+\begin{verbatim}
+Layout 'my-workspace' restoration complete:
+- Workspaces restored: 3
+- Applications launched: 8
+- Applications failed: 1
+
+Warnings/Errors encountered:
+  - Failed to launch: invalid-command
+\end{verbatim}
+
+\subsection{Flag System Implementation}
+
+Phase 4 introduces a flexible flag parsing system that enables control over all command operations. This system is designed for extensibility, allowing multiple flags to be combined for complex behaviors.
+
+The flags intended for implementation are the following:
+
+\begin{itemize}
+    \item \texttt{--skip-workspace=}: Skip saving/restoring specified workspace(s) by name or number
+    \item \texttt{--skip-app=}: Skip specified application(s) by app\_id or class name
+    \item \texttt{--only-workspace=}: Save/restore only the specified workspace(s) by name or number
+    \item \texttt{--only-app=}: Save/restore only the specified application
+    \item \texttt{--verbose}: Enable detailed logging of operations, including command execution and error reporting
+    \item \texttt{--delete-workspace}: Remove workspace(s) from a already saved preset instead of skipping them during save/load operations. (This can be useful for GUI implementation)
+    \item \texttt{--delete-app}: Remove application(s) from a saved preset instead of skipping them during save/load operations. (This can be useful for GUI implementation)
+    \item \texttt{--scratchpad}: Include windows in the scratchpad in save/load operations
+    \item \texttt{--clear-all}: Before restore it will close all open windows and workspaces, when saving it will save the current layout and then close all windows and workspaces
+    \item \texttt{--focus-workspace=}: Focus the specified workspace after restoration
+    \item \texttt{--focus-app=}: Focus the specified application after restoration by app\_id or class name
+    \item \texttt{--reuse-app=}: Instead of launching a new instance of the application, try to reuse an existing window that matches the criteria
+    \item \texttt{--timeout=}: Set a custom timeout for waiting for windows to appear during restoration
+    \item \texttt{--timeout-workspace=}: Set a custom timeout for waiting for a specific workspace to be ready during restoration
+    \item \texttt{--timeout-app=}: Set a custom timeout for waiting for a specific application to appear during restoration
+    \item \texttt{--overwrite}: When saving, overwrite an existing preset with the same name without prompting for confirmation
+    \item \texttt{--ignore-floating}: Ignore the floating windows so that they are not saved or restored, this can be useful for users that use floating windows for transient tasks and don't want them to be part of the layout presets
+    \item \texttt{--export}: Instead of saving to the default presets directory, export the layout to a specified file path
+    \item \texttt{--import}: Instead of loading from the default presets directory, import the layout from a specified file path
+    \item \texttt{--output=}: Target specific output/monitor for restoration, useful for multi-monitor setups
+    \item \texttt{--exclude-output=}: Exclude specific output/monitor from restoration, useful for multi-monitor setups
+    \item \texttt{--single-output}: Restoration in a single monitor setup, when the preset was saved in a multi-monitor setup, it will ignore the output association and restore all windows in the single monitor
+    \item \texttt{--force}: Force restore even if some applications fail to launch, applying the layout to whatever windows are successfully opened
+    \item \texttt{--quiet}: Suppress all output except for critical errors
+    \item \texttt{--raw}: Output raw JSON result of operations instead of formatted logs (useful for scripting and GUI integration)
+\end{itemize}
