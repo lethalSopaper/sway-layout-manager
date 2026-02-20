@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/lidsol/sway-layout-manager/internal/cli"
 	"github.com/lidsol/sway-layout-manager/internal/config"
 	"github.com/lidsol/sway-layout-manager/internal/layout"
 	"github.com/lidsol/sway-layout-manager/internal/sway"
@@ -18,12 +19,9 @@ const version = "0.1.0-dev"
 //go:embed help.txt
 var helpText string
 
-// command-line flags
-type CommandFlags struct {
-	SkipWorkspaces []string
-}
-
 func main() {
+	cli.AppVersion = version
+	cli.HelpText = helpText
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Error: No command specified\n\n")
 		printUsage()
@@ -47,7 +45,7 @@ func main() {
 	manager := preset.NewManager(cfg)
 
 	// parse flags and command
-	flags, command, args := parseFlags(os.Args[1:])
+	flags, command, args := cli.ParseFlags(os.Args[1:])
 
 	// command parser
 	switch command {
@@ -71,64 +69,7 @@ func main() {
 	}
 }
 
-// parseFlags parses command-line flags and returns flags, command, and remaining args
-func parseFlags(args []string) (*CommandFlags, string, []string) {
-	flags := &CommandFlags{}
-	var command string
-	var remainingArgs []string
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-
-		// check for flags
-		if strings.HasPrefix(arg, "--") || strings.HasPrefix(arg, "-") {
-			// handle --flag=value format
-			if strings.Contains(arg, "=") {
-				parts := strings.SplitN(arg, "=", 2)
-				flagName := parts[0]
-				flagValue := parts[1]
-
-				switch flagName {
-				case "--skip-workspace":
-					// split by comma and trim whitespace
-					identifiers := strings.Split(flagValue, ",")
-					for _, id := range identifiers {
-						id = strings.TrimSpace(id)
-						if id != "" {
-							flags.SkipWorkspaces = append(flags.SkipWorkspaces, id)
-						}
-					}
-				default:
-					fmt.Fprintf(os.Stderr, "Error: Unknown flag '%s'\n", flagName)
-					os.Exit(1)
-				}
-			} else {
-				// handle standalone flags (--help, -h, --version, -v)
-				switch arg {
-				case "--help", "-h":
-					printUsage()
-					os.Exit(0)
-				case "--version", "-v":
-					fmt.Printf("sway-layout-manager %s\n", version)
-					os.Exit(0)
-				default:
-					fmt.Fprintf(os.Stderr, "Error: Flag '%s' requires a value (use --flag=value format)\n", arg)
-					os.Exit(1)
-				}
-			}
-		} else if command == "" {
-			// first non-flag argument is the command
-			command = arg
-		} else {
-			// remaining arguments
-			remainingArgs = append(remainingArgs, arg)
-		}
-	}
-
-	return flags, command, remainingArgs
-}
-
-func handleSave(parser *layout.Parser, manager *preset.Manager, flags *CommandFlags, args []string) {
+func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.CommandFlags, args []string) {
 	var name string
 	if len(args) > 0 {
 		name = args[0]
@@ -187,7 +128,7 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *CommandFl
 	fmt.Printf("- Containers: %d\n", totalContainers)
 }
 
-func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *CommandFlags, args []string) {
+func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.CommandFlags, args []string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
 		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr load <name>\n")
