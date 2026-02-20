@@ -6,21 +6,49 @@ Sway Layout Manager is an application that automates the process of saving and r
 
 ## Features
 
--   **Save Layout Presets**: Get current window arrangements across multiple workspaces and outputs
--   **Layout Loading**: Load saved layouts restoring window positions and applications
--   **Dual Interface**: Command-line interface (CLI) for automation and scripting
--   **Future GUI Support**: Planned graphical interface for visual management
--   **No Dependencies**: Core CLI compiles to a single executable with no runtime dependencies
+- **Save Layout Presets**: Get current window arrangements across multiple workspaces and outputs
+- **Layout Loading**: Load saved layouts restoring window positions and applications
+- **Dual Interface**: Command-line interface (CLI) for automation and scripting
+- **Future GUI Support**: Planned graphical interface for visual management
+- **No Dependencies**: Core CLI compiles to a single executable with no runtime dependencies
 
 ## Requirements
 
--   **Operating System**: GNU/Linux distribution with Wayland support
--   **Window Manager**: Sway (version 1.10 or higher)
--   **Runtime**: No additional dependencies for CLI usage
+- **Operating System**: GNU/Linux distribution with Wayland support
+- **Window Manager**: Sway (version 1.10 or higher)
+- **Runtime**: No additional dependencies for CLI usage
 
 ## Installation
 
 > **Note**: This project is currently in development. Installation instructions will be provided once the first release is available.
+
+## Building from Source
+
+### Prerequisites
+
+- Go 1.21 or higher
+- Git
+
+### Build Steps
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/lidsol/sway-layout-manager.git
+cd sway-layout-manager
+```
+
+2. Build the executable:
+
+```bash
+go build -o swaylayoutmgr ./cmd/swaylayoutmgr
+```
+
+3. (Optional) Install to your system:
+
+```bash
+sudo mv swaylayoutmgr /usr/local/bin/
+```
 
 ## Usage
 
