@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 	"github.com/lidsol/sway-layout-manager/internal/config"
 	"github.com/lidsol/sway-layout-manager/internal/layout"
@@ -15,6 +17,11 @@ const version = "0.1.0-dev"
 
 //go:embed help.txt
 var helpText string
+
+// command-line flags
+type CommandFlags struct {
+	SkipWorkspaces []string
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -39,21 +46,24 @@ func main() {
 	parser := layout.NewParser(swayClient)
 	manager := preset.NewManager(cfg)
 
+	// parse flags and command
+	flags, command, args := parseFlags(os.Args[1:])
+
 	// command parser
-	command := os.Args[1]
 	switch command {
 	case "save":
-		handleSave(parser, manager, os.Args[2:])
+		handleSave(parser, manager, flags, args)
 	case "load":
-		handleLoad(manager, swayClient, os.Args[2:])
+		handleLoad(manager, swayClient, flags, args)
 	case "list":
 		handleList(manager)
 	case "delete":
-		handleDelete(manager, os.Args[2:])
-	case "--version", "-v":
-		fmt.Printf("sway-layout-manager %s\n", version)
-	case "--help", "-h":
+		handleDelete(manager, args)
+	case "":
+		// no command provided
+		fmt.Fprintf(os.Stderr, "Error: No command specified\n\n")
 		printUsage()
+		os.Exit(1)
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n", command)
 		fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr --help' to see available commands.\n")
@@ -61,7 +71,64 @@ func main() {
 	}
 }
 
-func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
+// parseFlags parses command-line flags and returns flags, command, and remaining args
+func parseFlags(args []string) (*CommandFlags, string, []string) {
+	flags := &CommandFlags{}
+	var command string
+	var remainingArgs []string
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+
+		// check for flags
+		if strings.HasPrefix(arg, "--") || strings.HasPrefix(arg, "-") {
+			// handle --flag=value format
+			if strings.Contains(arg, "=") {
+				parts := strings.SplitN(arg, "=", 2)
+				flagName := parts[0]
+				flagValue := parts[1]
+
+				switch flagName {
+				case "--skip-workspace":
+					// split by comma and trim whitespace
+					identifiers := strings.Split(flagValue, ",")
+					for _, id := range identifiers {
+						id = strings.TrimSpace(id)
+						if id != "" {
+							flags.SkipWorkspaces = append(flags.SkipWorkspaces, id)
+						}
+					}
+				default:
+					fmt.Fprintf(os.Stderr, "Error: Unknown flag '%s'\n", flagName)
+					os.Exit(1)
+				}
+			} else {
+				// handle standalone flags (--help, -h, --version, -v)
+				switch arg {
+				case "--help", "-h":
+					printUsage()
+					os.Exit(0)
+				case "--version", "-v":
+					fmt.Printf("sway-layout-manager %s\n", version)
+					os.Exit(0)
+				default:
+					fmt.Fprintf(os.Stderr, "Error: Flag '%s' requires a value (use --flag=value format)\n", arg)
+					os.Exit(1)
+				}
+			}
+		} else if command == "" {
+			// first non-flag argument is the command
+			command = arg
+		} else {
+			// remaining arguments
+			remainingArgs = append(remainingArgs, arg)
+		}
+	}
+
+	return flags, command, remainingArgs
+}
+
+func handleSave(parser *layout.Parser, manager *preset.Manager, flags *CommandFlags, args []string) {
 	var name string
 	if len(args) > 0 {
 		name = args[0]
@@ -86,6 +153,22 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
 		os.Exit(1)
 	}
 
+	// filter specific workspaces if flag is set
+	if len(flags.SkipWorkspaces) > 0 {
+		// validate workspace identifiers exist
+		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		originalCount := len(preset.Workspaces)
+		preset.Workspaces = layout.FilterSkipWorkspaces(preset.Workspaces, flags.SkipWorkspaces)
+		skipped := originalCount - len(preset.Workspaces)
+		if skipped > 0 {
+			fmt.Printf("Skipped %d specified workspace(s)\n", skipped)
+		}
+	}
+
 	// saves the preset
 	if err := manager.Save(preset); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to save preset: %v\n", err)
@@ -104,7 +187,7 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, args []string) {
 	fmt.Printf("- Containers: %d\n", totalContainers)
 }
 
-func handleLoad(manager *preset.Manager, swayClient *sway.Client, args []string) {
+func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *CommandFlags, args []string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
 		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr load <name>\n")
@@ -125,6 +208,22 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, args []string)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to load preset: %v\n", err)
 		os.Exit(1)
+	}
+
+	// filter specific workspaces if flag is set
+	if len(flags.SkipWorkspaces) > 0 {
+		// validate workspace identifiers exist
+		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		originalCount := len(preset.Workspaces)
+		preset.Workspaces = layout.FilterSkipWorkspaces(preset.Workspaces, flags.SkipWorkspaces)
+		skipped := originalCount - len(preset.Workspaces)
+		if skipped > 0 {
+			fmt.Printf("Skipping %d specified workspace(s)\n", skipped)
+		}
 	}
 
 	fmt.Printf("Restoring layout '%s'...\n", name)
@@ -202,6 +301,43 @@ func handleDelete(manager *preset.Manager, args []string) {
 	}
 
 	fmt.Printf("Successfully deleted preset '%s'\n", name)
+}
+
+// validateWorkspaceIdentifiers checks if all workspace identifiers exist in the workspace list
+func validateWorkspaceIdentifiers(workspaces []layout.WorkspaceLayout, identifiers []string) error {
+	var notFound []string
+
+	for _, identifier := range identifiers {
+		found := false
+
+		// check if identifier is a workspace number
+		if num, err := strconv.Atoi(identifier); err == nil {
+			for _, ws := range workspaces {
+				if ws.Num == num {
+					found = true
+					break
+				}
+			}
+		} else {
+			// check if identifier is a workspace name
+			for _, ws := range workspaces {
+				if ws.Name == identifier {
+					found = true
+					break
+				}
+			}
+		}
+
+		if !found {
+			notFound = append(notFound, identifier)
+		}
+	}
+
+	if len(notFound) > 0 {
+		return fmt.Errorf("workspace(s) not found: %s", strings.Join(notFound, ", "))
+	}
+
+	return nil
 }
 
 func printUsage() {
