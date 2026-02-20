@@ -9,6 +9,7 @@ import (
 // holds all parsed command-line flags
 type CommandFlags struct {
 	SkipWorkspaces []string // for --skip-workspace=
+	Overwrite      bool     // for --overwrite
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -33,16 +34,21 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 					os.Exit(1)
 				}
 			} else {
-				// handle standalone flags
-				handled := HandleStandaloneFlag(arg)
-				if !handled {
-					if isKnownValueFlag(arg) {
-						fmt.Fprintf(os.Stderr, "Error: Flag '%s' requires a value (use --flag=value format)\n", arg)
-					} else {
-						fmt.Fprintf(os.Stderr, "Error: Unknown flag '%s'\n", arg)
-					}
-					os.Exit(1)
+				// handle standalone flags that cause immediate exit
+				if HandleStandaloneFlag(arg) {
+					continue
 				}
+				// handle boolean flags that set state
+				if parseBooleanFlag(flags, arg) {
+					continue
+				}
+				// unknown flag
+				if isKnownValueFlag(arg) {
+					fmt.Fprintf(os.Stderr, "Error: Flag '%s' requires a value (use --flag=value format)\n", arg)
+				} else {
+					fmt.Fprintf(os.Stderr, "Error: Unknown flag '%s'\n", arg)
+				}
+				os.Exit(1)
 			}
 		} else if command == "" {
 			command = arg
@@ -58,6 +64,17 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
 	case "--skip-workspace":
+		return true
+	default:
+		return false
+	}
+}
+
+// handles boolean flags that set state
+func parseBooleanFlag(flags *CommandFlags, flagName string) bool {
+	switch flagName {
+	case "--overwrite":
+		flags.Overwrite = true
 		return true
 	default:
 		return false

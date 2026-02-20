@@ -80,12 +80,18 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 
 	// check if preset already exists
 	if manager.Exists(name) {
-		fmt.Fprintf(os.Stderr, "Error: Preset '%s' already exists\n", name)
-		fmt.Fprintf(os.Stderr, "Use a different name or delete it first with: swaylayoutmgr delete %s\n", name)
-		os.Exit(1)
+		if !flags.Overwrite {
+			fmt.Fprintf(os.Stderr, "Error: Preset '%s' already exists\n", name)
+			fmt.Fprintf(os.Stderr, "Use a different name, delete it first with: swaylayoutmgr delete %s\n", name)
+			fmt.Fprintf(os.Stderr, "Or use --overwrite to replace it.\n")
+			os.Exit(1)
+		}
+		fmt.Printf("Overwriting existing preset '%s'...\n", name)
 	}
 
-	fmt.Printf("Capturing current layout as '%s'...\n", name)
+	if !manager.Exists(name) {
+		fmt.Printf("Capturing current layout as '%s'...\n", name)
+	}
 
 	// capture current layout
 	preset, err := parser.CaptureCurrentLayout(name)

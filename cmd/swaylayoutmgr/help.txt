@@ -13,20 +13,9 @@ Commands:
 Flags:
   --skip-workspace=<id>[,<id>...]   Skip workspaces by number or name (comma-separated)
                                     Quote workspace names with spaces
+  --overwrite                       Overwrite existing preset without confirmation
   -h, --help                        Show this help message
   -v, --version                     Show version information
-
-Examples:
-  swaylayoutmgr save my-workspace                           # Save current layout with custom name
-  swaylayoutmgr save                                        # Save with auto-generated name
-  swaylayoutmgr --skip-workspace=2 save my-layout           # Save, excluding workspace 2
-  swaylayoutmgr --skip-workspace=mail save my-layout        # Save, excluding workspace "mail"
-  swaylayoutmgr --skip-workspace="my workspace" save lay    # Save, skip workspace with spaces
-  swaylayoutmgr --skip-workspace=1,3,dev save my-ws         # Skip multiple workspaces
-  swaylayoutmgr --skip-workspace="2,AUDIO,my ws" load lay   # Skip multiple (quoted)
-  swaylayoutmgr load my-workspace                           # Restore a saved layout
-  swaylayoutmgr list                                        # Show all available presets
-  swaylayoutmgr delete my-workspace                         # Remove a saved preset
 
 Notes:
   - Layout restoration preserves container hierarchy (tabbed, stacked, split)
