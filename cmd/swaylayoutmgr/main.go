@@ -100,7 +100,13 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		os.Exit(1)
 	}
 
-	// filter specific workspaces if flag is set
+	// check for conflicting flags
+	if len(flags.SkipWorkspaces) > 0 && len(flags.OnlyWorkspaces) > 0 {
+		fmt.Fprintf(os.Stderr, "Error: Cannot use both --skip-workspace and --only-workspace flags together\n")
+		os.Exit(1)
+	}
+
+	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
 		// validate workspace identifiers exist
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
@@ -113,6 +119,18 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		skipped := originalCount - len(preset.Workspaces)
 		if skipped > 0 {
 			fmt.Printf("Skipped %d specified workspace(s)\n", skipped)
+		}
+	} else if len(flags.OnlyWorkspaces) > 0 {
+		// validate workspace identifiers exist
+		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+		included := len(preset.Workspaces)
+		if included > 0 {
+			fmt.Printf("Including only %d specified workspace(s)\n", included)
 		}
 	}
 
@@ -157,7 +175,13 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		os.Exit(1)
 	}
 
-	// filter specific workspaces if flag is set
+	// check for conflicting flags
+	if len(flags.SkipWorkspaces) > 0 && len(flags.OnlyWorkspaces) > 0 {
+		fmt.Fprintf(os.Stderr, "Error: Cannot use both --skip-workspace and --only-workspace flags together\n")
+		os.Exit(1)
+	}
+
+	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
 		// validate workspace identifiers exist
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
@@ -170,6 +194,18 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		skipped := originalCount - len(preset.Workspaces)
 		if skipped > 0 {
 			fmt.Printf("Skipping %d specified workspace(s)\n", skipped)
+		}
+	} else if len(flags.OnlyWorkspaces) > 0 {
+		// validate workspace identifiers exist
+		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+		included := len(preset.Workspaces)
+		if included > 0 {
+			fmt.Printf("Restoring only %d specified workspace(s)\n", included)
 		}
 	}
 

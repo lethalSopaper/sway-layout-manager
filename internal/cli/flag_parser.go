@@ -9,6 +9,7 @@ import (
 // holds all parsed command-line flags
 type CommandFlags struct {
 	SkipWorkspaces []string // for --skip-workspace=
+	OnlyWorkspaces []string // for --only-workspace=
 	Overwrite      bool     // for --overwrite
 }
 
@@ -63,7 +64,7 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 // checks if a flag name is a recognized flag that requires a value
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
-	case "--skip-workspace":
+	case "--skip-workspace", "--only-workspace":
 		return true
 	default:
 		return false
@@ -91,6 +92,16 @@ func parseValueFlag(flags *CommandFlags, flagName string, flagValue string) bool
 			id = strings.TrimSpace(id)
 			if id != "" {
 				flags.SkipWorkspaces = append(flags.SkipWorkspaces, id)
+			}
+		}
+		return true
+	case "--only-workspace":
+		// split by comma and trim whitespace
+		identifiers := strings.Split(flagValue, ",")
+		for _, id := range identifiers {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				flags.OnlyWorkspaces = append(flags.OnlyWorkspaces, id)
 			}
 		}
 		return true
