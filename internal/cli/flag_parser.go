@@ -10,6 +10,7 @@ import (
 type CommandFlags struct {
 	SkipWorkspaces []string // for --skip-workspace=
 	OnlyWorkspaces []string // for --only-workspace=
+	FocusWorkspace string   // for --focus-workspace=
 	Overwrite      bool     // for --overwrite
 }
 
@@ -64,7 +65,7 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 // checks if a flag name is a recognized flag that requires a value
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
-	case "--skip-workspace", "--only-workspace":
+	case "--skip-workspace", "--only-workspace", "--focus-workspace":
 		return true
 	default:
 		return false
@@ -104,6 +105,9 @@ func parseValueFlag(flags *CommandFlags, flagName string, flagValue string) bool
 				flags.OnlyWorkspaces = append(flags.OnlyWorkspaces, id)
 			}
 		}
+		return true
+	case "--focus-workspace":
+		flags.FocusWorkspace = strings.TrimSpace(flagValue)
 		return true
 	default:
 		return false

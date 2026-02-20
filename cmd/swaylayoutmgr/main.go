@@ -54,9 +54,9 @@ func main() {
 	case "load":
 		handleLoad(manager, swayClient, flags, args)
 	case "list":
-		handleList(manager)
+		handleList(manager, flags)
 	case "delete":
-		handleDelete(manager, args)
+		handleDelete(manager, flags, args)
 	case "":
 		// no command provided
 		fmt.Fprintf(os.Stderr, "Error: No command specified\n\n")
@@ -150,6 +150,10 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 	fmt.Printf("- Outputs: %d\n", len(preset.Outputs))
 	fmt.Printf("- Workspaces: %d\n", len(preset.Workspaces))
 	fmt.Printf("- Containers: %d\n", totalContainers)
+
+	if flags.FocusWorkspace != "" {
+		fmt.Fprintf(os.Stderr, "\nWarning: --focus-workspace flag only works with 'load' command (ignored)\n")
+	}
 }
 
 func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.CommandFlags, args []string) {
@@ -235,9 +239,21 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 			fmt.Printf("  - %v\n", err)
 		}
 	}
+
+	// focus workspace if flag is set
+	if flags.FocusWorkspace != "" {
+		if err := focusWorkspace(swayClient, flags.FocusWorkspace); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to focus workspace '%s': %v\n", flags.FocusWorkspace, err)
+		} else {
+			fmt.Printf("\nFocused workspace '%s'\n", flags.FocusWorkspace)
+		}
+	}
+
+	// warn about incompatible flags
+	warnIncompatibleFlags(flags, "load")
 }
 
-func handleList(manager *preset.Manager) {
+func handleList(manager *preset.Manager, flags *cli.CommandFlags) {
 	metadata, err := manager.List()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to list presets: %v\n", err)
@@ -259,9 +275,12 @@ func handleList(manager *preset.Manager) {
 		fmt.Printf("  Windows: %d\n", meta.WindowCount)
 		fmt.Println()
 	}
+
+	// warn about incompatible flags
+	warnIncompatibleFlags(flags, "list")
 }
 
-func handleDelete(manager *preset.Manager, args []string) {
+func handleDelete(manager *preset.Manager, flags *cli.CommandFlags, args []string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
 		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr delete <name>\n")
@@ -284,6 +303,9 @@ func handleDelete(manager *preset.Manager, args []string) {
 	}
 
 	fmt.Printf("Successfully deleted preset '%s'\n", name)
+
+	// warn about incompatible flags
+	warnIncompatibleFlags(flags, "delete")
 }
 
 // validateWorkspaceIdentifiers checks if all workspace identifiers exist in the workspace list
@@ -321,6 +343,68 @@ func validateWorkspaceIdentifiers(workspaces []layout.WorkspaceLayout, identifie
 	}
 
 	return nil
+}
+
+// focuses the specified workspace by number or name
+func focusWorkspace(swayClient *sway.Client, identifier string) error {
+	// check if identifier is a workspace number
+	if _, err := strconv.Atoi(identifier); err == nil {
+		return swayClient.RunCommand(fmt.Sprintf("workspace number %s", identifier))
+	}
+	return swayClient.RunCommand(fmt.Sprintf("workspace %s", identifier))
+}
+
+// warnIncompatibleFlags warns about flags that don't apply to the given command
+func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
+	var warnings []string
+
+	switch command {
+	case "save":
+		// save supports: --skip-workspace, --only-workspace, --overwrite
+		if flags.FocusWorkspace != "" {
+			warnings = append(warnings, "--focus-workspace only works with 'load' command")
+		}
+	case "load":
+		// load supports: --skip-workspace, --only-workspace, --focus-workspace
+		if flags.Overwrite {
+			warnings = append(warnings, "--overwrite only works with 'save' command")
+		}
+	case "list":
+		// list supports no data flags
+		if len(flags.SkipWorkspaces) > 0 {
+			warnings = append(warnings, "--skip-workspace only works with 'save' and 'load' commands")
+		}
+		if len(flags.OnlyWorkspaces) > 0 {
+			warnings = append(warnings, "--only-workspace only works with 'save' and 'load' commands")
+		}
+		if flags.FocusWorkspace != "" {
+			warnings = append(warnings, "--focus-workspace only works with 'load' command")
+		}
+		if flags.Overwrite {
+			warnings = append(warnings, "--overwrite only works with 'save' command")
+		}
+	case "delete":
+		// delete supports no data flags
+		if len(flags.SkipWorkspaces) > 0 {
+			warnings = append(warnings, "--skip-workspace only works with 'save' and 'load' commands")
+		}
+		if len(flags.OnlyWorkspaces) > 0 {
+			warnings = append(warnings, "--only-workspace only works with 'save' and 'load' commands")
+		}
+		if flags.FocusWorkspace != "" {
+			warnings = append(warnings, "--focus-workspace only works with 'load' command")
+		}
+		if flags.Overwrite {
+			warnings = append(warnings, "--overwrite only works with 'save' command")
+		}
+	}
+
+	if len(warnings) > 0 {
+		fmt.Fprintf(os.Stderr, "\n")
+		for _, warning := range warnings {
+			fmt.Fprintf(os.Stderr, "Warning: %s (ignored)\n", warning)
+		}
+	}
 }
 
 func printUsage() {
