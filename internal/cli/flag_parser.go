@@ -12,13 +12,14 @@ type CommandFlags struct {
 	OnlyWorkspaces []string // for --only-workspace=
 	SkipApps []string // for --skip-app=
 	OnlyApps []string // for --only-app=
-	FocusWorkspace string   // for --focus-workspace=
-	Export string   // for --export=
-	Import string   // for --import=
-	Overwrite bool     // for --overwrite
-	IgnoreFloating bool     // for --ignore-floating
-	ReuseAll bool     // for --reuse-all
+	FocusWorkspace string // for --focus-workspace=
+	Export string // for --export=
+	Import string // for --import=
+	Overwrite bool // for --overwrite
+	IgnoreFloating bool // for --ignore-floating
+	ReuseAll bool // for --reuse-all
 	ReuseApps []string // for --reuse=
+	Clear bool // for --clear
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -90,6 +91,9 @@ func parseBooleanFlag(flags *CommandFlags, flagName string) bool {
 		return true
 	case "--reuse-all":
 		flags.ReuseAll = true
+		return true
+	case "--clear":
+		flags.Clear = true
 		return true
 	default:
 		return false

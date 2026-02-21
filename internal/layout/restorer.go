@@ -13,6 +13,7 @@ type Restorer struct {
 	errors []error // non-fatal errors during restoration
 	ReuseExistingWindows bool
 	ReuseApps []string
+	ClearWorkspaces bool
 	reusedWindowIDs map[int64]bool // tracks IDs of windows that have been reused
 }
 
@@ -50,6 +51,13 @@ func (r *Restorer) Restore(preset *Preset) (*RestoreResult, error) {
 				defer r.client.RunCommand(fmt.Sprintf("workspace number %d", ws.Num))
 				break
 			}
+		}
+	}
+
+	// clear windows in workspaces if requested
+	if r.ClearWorkspaces {
+		if err := r.clearWorkspacesBeforeRestore(preset.Workspaces); err != nil {
+			r.errors = append(r.errors, fmt.Errorf("clear workspaces: %w", err))
 		}
 	}
 
@@ -427,6 +435,73 @@ func (r *Restorer) collectContainersWithExec(containers *[]ContainerLayout, resu
 		if len((*containers)[i].Children) > 0 {
 			r.collectContainersWithExec(&(*containers)[i].Children, result)
 		}
+	}
+}
+
+// clears all windows from the specified workspaces
+func (r *Restorer) clearWorkspacesBeforeRestore(workspaces []WorkspaceLayout) error {
+	tree, err := r.client.GetTree()
+	if err != nil {
+		return fmt.Errorf("failed to get window tree: %w", err)
+	}
+
+	// collect workspace numbers/names to clear
+	workspaceMap := make(map[int]bool)
+	workspaceNameMap := make(map[string]bool)
+
+	for _, ws := range workspaces {
+		if ws.Num >= 0 {
+			workspaceMap[ws.Num] = true
+		} else {
+			workspaceNameMap[ws.Name] = true
+		}
+	}
+
+	// find and close windows in target workspaces
+	r.closeWindowsInWorkspaces(tree, workspaceMap, workspaceNameMap)
+	return nil
+}
+
+// recursively closes windows in specified workspaces
+func (r *Restorer) closeWindowsInWorkspaces(node *sway.Node, workspaceNums map[int]bool, workspaceNames map[string]bool) {
+	// check if this is a workspace node that we want to clear
+	if node.Type == "workspace" {
+		shouldClear := false
+		if workspaceNums[node.Num] || workspaceNames[node.Name] {
+			shouldClear = true
+		}
+		if shouldClear {
+			// close all windows in this workspace
+			r.closeAllWindowsInNode(node)
+			return
+		}
+	}
+
+	// recursively search children
+	for i := range node.Nodes {
+		r.closeWindowsInWorkspaces(&node.Nodes[i], workspaceNums, workspaceNames)
+	}
+	for i := range node.FloatingNodes {
+		r.closeWindowsInWorkspaces(&node.FloatingNodes[i], workspaceNums, workspaceNames)
+	}
+}
+
+// closes all windows in a node and its children
+func (r *Restorer) closeAllWindowsInNode(node *sway.Node) {
+	// if this is a window/container with an ID, close it
+	if node.Type == "con" || node.Type == "floating_con" {
+		if node.ID > 0 {
+			// use con_id criteria to close the window
+			r.client.RunCommand(fmt.Sprintf("[con_id=%d] kill", node.ID))
+		}
+	}
+
+	// recursively close children
+	for i := range node.Nodes {
+		r.closeAllWindowsInNode(&node.Nodes[i])
+	}
+	for i := range node.FloatingNodes {
+		r.closeAllWindowsInNode(&node.FloatingNodes[i])
 	}
 }
 

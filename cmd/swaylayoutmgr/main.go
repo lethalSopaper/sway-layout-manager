@@ -317,6 +317,7 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 	if !flags.ReuseAll {
 		restorer.ReuseApps = flags.ReuseApps
 	}
+	restorer.ClearWorkspaces = flags.Clear
 	result, err := restorer.Restore(preset)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to restore layout: %v\n", err)
@@ -579,6 +580,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		"--import": {"load"},
 		"--reuse-all": {"load"},
 		"--reuse": {"load"},
+		"--clear": {"load"},
 	}
 
 	type flagCheck struct {
@@ -596,6 +598,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		{"--ignore-floating", flags.IgnoreFloating},
 		{"--export", flags.Export != ""},
 		{"--import", flags.Import != ""},
+		{"--clear", flags.Clear},
 		{"--reuse-all", flags.ReuseAll},
 		{"--reuse", len(flags.ReuseApps) > 0},
 	}
