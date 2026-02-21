@@ -122,12 +122,21 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 			fmt.Printf("Skipped %d specified workspace(s)\n", skipped)
 		}
 	} else if len(flags.OnlyWorkspaces) > 0 {
-		// warn about non-existent workspace identifiers
-		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		// check which workspace identifiers exist
+		validWorkspaces, invalidWorkspaces := filterValidWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+
+		// error if all workspaces are invalid
+		if len(validWorkspaces) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: workspace(s) not found: %s\n", strings.Join(invalidWorkspaces, ", "))
+			os.Exit(1)
 		}
 
-		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+		// warn about invalid workspaces but continue with valid ones
+		if len(invalidWorkspaces) > 0 {
+			fmt.Fprintf(os.Stderr, "Warning: workspace(s) not found: %s\n", strings.Join(invalidWorkspaces, ", "))
+		}
+
+		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, validWorkspaces)
 		included := len(preset.Workspaces)
 		if included > 0 {
 			fmt.Printf("Including only %d specified workspace(s)\n", included)
@@ -236,12 +245,21 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 			fmt.Printf("Skipping %d specified workspace(s)\n", skipped)
 		}
 	} else if len(flags.OnlyWorkspaces) > 0 {
-		// warn about non-existent workspace identifiers
-		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		// check which workspace identifiers exist
+		validWorkspaces, invalidWorkspaces := filterValidWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+
+		// error if all workspaces are invalid
+		if len(validWorkspaces) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: workspace(s) not found: %s\n", strings.Join(invalidWorkspaces, ", "))
+			os.Exit(1)
 		}
 
-		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
+		// warn about invalid workspaces but continue with valid ones
+		if len(invalidWorkspaces) > 0 {
+			fmt.Fprintf(os.Stderr, "Warning: workspace(s) not found: %s\n", strings.Join(invalidWorkspaces, ", "))
+		}
+
+		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, validWorkspaces)
 		included := len(preset.Workspaces)
 		if included > 0 {
 			fmt.Printf("Restoring only %d specified workspace(s)\n", included)
@@ -388,6 +406,39 @@ func validateWorkspaceIdentifiers(workspaces []layout.WorkspaceLayout, identifie
 	}
 
 	return nil
+}
+
+// separates workspace identifiers into valid and invalid lists
+func filterValidWorkspaces(workspaces []layout.WorkspaceLayout, identifiers []string) (valid []string, invalid []string) {
+	for _, identifier := range identifiers {
+		found := false
+
+		// check if identifier is a workspace number
+		if num, err := strconv.Atoi(identifier); err == nil {
+			for _, ws := range workspaces {
+				if ws.Num == num {
+					found = true
+					break
+				}
+			}
+		} else {
+			// check if identifier is a workspace name
+			for _, ws := range workspaces {
+				if ws.Name == identifier {
+					found = true
+					break
+				}
+			}
+		}
+
+		if found {
+			valid = append(valid, identifier)
+		} else {
+			invalid = append(invalid, identifier)
+		}
+	}
+
+	return valid, invalid
 }
 
 // focuses the specified workspace by number or name
