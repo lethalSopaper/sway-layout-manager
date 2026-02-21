@@ -96,3 +96,88 @@ func filterFloatingFromContainers(containers []ContainerLayout) []ContainerLayou
 
 	return filtered
 }
+
+// excludes applications matching the given identifiers (app_id or class)
+func FilterSkipApps(workspaces []WorkspaceLayout, skipIdentifiers []string) []WorkspaceLayout {
+	if len(skipIdentifiers) == 0 {
+		return workspaces
+	}
+
+	skipMap := make(map[string]bool)
+	for _, id := range skipIdentifiers {
+		skipMap[id] = true
+	}
+
+	var filtered []WorkspaceLayout
+	for _, ws := range workspaces {
+		wsFiltered := ws
+		wsFiltered.Containers = filterSkipAppsFromContainers(ws.Containers, skipMap)
+		filtered = append(filtered, wsFiltered)
+	}
+
+	return filtered
+}
+
+func filterSkipAppsFromContainers(containers []ContainerLayout, skipMap map[string]bool) []ContainerLayout {
+	var filtered []ContainerLayout
+
+	for _, container := range containers {
+		// skip if app_id or class matches
+		if skipMap[container.AppID] || skipMap[container.WindowClass] {
+			continue
+		}
+
+		// recursively filter children
+		if len(container.Children) > 0 {
+			container.Children = filterSkipAppsFromContainers(container.Children, skipMap)
+		}
+
+		filtered = append(filtered, container)
+	}
+
+	return filtered
+}
+
+// includes only applications matching the given identifiers (app_id or class)
+func FilterOnlyApps(workspaces []WorkspaceLayout, onlyIdentifiers []string) []WorkspaceLayout {
+	if len(onlyIdentifiers) == 0 {
+		return workspaces
+	}
+
+	onlyMap := make(map[string]bool)
+	for _, id := range onlyIdentifiers {
+		onlyMap[id] = true
+	}
+
+	var filtered []WorkspaceLayout
+	for _, ws := range workspaces {
+		wsFiltered := ws
+		wsFiltered.Containers = filterOnlyAppsFromContainers(ws.Containers, onlyMap)
+		filtered = append(filtered, wsFiltered)
+	}
+
+	return filtered
+}
+
+func filterOnlyAppsFromContainers(containers []ContainerLayout, onlyMap map[string]bool) []ContainerLayout {
+	var filtered []ContainerLayout
+
+	for _, container := range containers {
+		// include if app_id or class matches
+		if onlyMap[container.AppID] || onlyMap[container.WindowClass] {
+			filtered = append(filtered, container)
+			continue
+		}
+
+		// for containers without direct match, check children recursively
+		if len(container.Children) > 0 {
+			filteredChildren := filterOnlyAppsFromContainers(container.Children, onlyMap)
+			if len(filteredChildren) > 0 {
+				container.Children = filteredChildren
+				filtered = append(filtered, container)
+			}
+		}
+	}
+
+	return filtered
+}

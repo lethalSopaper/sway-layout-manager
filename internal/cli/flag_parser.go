@@ -10,13 +10,15 @@ import (
 type CommandFlags struct {
 	SkipWorkspaces []string // for --skip-workspace=
 	OnlyWorkspaces []string // for --only-workspace=
+	SkipApps []string // for --skip-app=
+	OnlyApps []string // for --only-app=
 	FocusWorkspace string   // for --focus-workspace=
-	Export         string   // for --export=
-	Import         string   // for --import=
-	Overwrite      bool     // for --overwrite
+	Export string   // for --export=
+	Import string   // for --import=
+	Overwrite bool     // for --overwrite
 	IgnoreFloating bool     // for --ignore-floating
-	ReuseAll       bool     // for --reuse-all
-	ReuseApps      []string // for --reuse=
+	ReuseAll bool     // for --reuse-all
+	ReuseApps []string // for --reuse=
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -70,7 +72,7 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 // checks if a flag name is a recognized flag that requires a value
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
-	case "--skip-workspace", "--only-workspace", "--focus-workspace", "--export", "--import", "--reuse":
+	case "--skip-workspace", "--only-workspace", "--skip-app", "--only-app", "--focus-workspace", "--export", "--import", "--reuse":
 		return true
 	default:
 		return false
@@ -114,6 +116,26 @@ func parseValueFlag(flags *CommandFlags, flagName string, flagValue string) bool
 			id = strings.TrimSpace(id)
 			if id != "" {
 				flags.OnlyWorkspaces = append(flags.OnlyWorkspaces, id)
+			}
+		}
+		return true
+	case "--skip-app":
+		// split by comma and trim whitespace
+		identifiers := strings.Split(flagValue, ",")
+		for _, id := range identifiers {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				flags.SkipApps = append(flags.SkipApps, id)
+			}
+		}
+		return true
+	case "--only-app":
+		// split by comma and trim whitespace
+		identifiers := strings.Split(flagValue, ",")
+		for _, id := range identifiers {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				flags.OnlyApps = append(flags.OnlyApps, id)
 			}
 		}
 		return true

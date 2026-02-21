@@ -149,6 +149,22 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		fmt.Printf("Ignoring floating windows\n")
 	}
 
+	// filter applications if flags are set
+	if len(flags.SkipApps) > 0 {
+		originalCount := countContainers(preset.Workspaces)
+		preset.Workspaces = layout.FilterSkipApps(preset.Workspaces, flags.SkipApps)
+		skipped := originalCount - countContainers(preset.Workspaces)
+		if skipped > 0 {
+			fmt.Printf("Skipped %d specified application(s)\n", skipped)
+		}
+	} else if len(flags.OnlyApps) > 0 {
+		preset.Workspaces = layout.FilterOnlyApps(preset.Workspaces, flags.OnlyApps)
+		included := countContainers(preset.Workspaces)
+		if included > 0 {
+			fmt.Printf("Including only %d specified application(s)\n", included)
+		}
+	}
+
 	// export to custom path or save to presets directory
 	if flags.Export != "" {
 		filePath, err := exportToFile(preset, flags.Export, name)
@@ -271,6 +287,21 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		preset.Workspaces = layout.FilterFloatingContainers(preset.Workspaces)
 		fmt.Printf("Ignoring floating windows\n")
 	}
+	// filter applications if flags are set
+	if len(flags.SkipApps) > 0 {
+		originalCount := countContainers(preset.Workspaces)
+		preset.Workspaces = layout.FilterSkipApps(preset.Workspaces, flags.SkipApps)
+		skipped := originalCount - countContainers(preset.Workspaces)
+		if skipped > 0 {
+			fmt.Printf("Skipping %d specified application(s)\n", skipped)
+		}
+	} else if len(flags.OnlyApps) > 0 {
+		preset.Workspaces = layout.FilterOnlyApps(preset.Workspaces, flags.OnlyApps)
+		included := countContainers(preset.Workspaces)
+		if included > 0 {
+			fmt.Printf("Restoring only %d specified application(s)\n", included)
+		}
+	}
 
 	// warn if both reuse flags are used together
 	if flags.ReuseAll && len(flags.ReuseApps) > 0 {
@@ -326,6 +357,9 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 }
 
 func handleList(manager *preset.Manager, flags *cli.CommandFlags) {
+	// warn about incompatible flags
+	warnIncompatibleFlags(flags, "list")
+
 	metadata, err := manager.List()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to list presets: %v\n", err)
@@ -347,9 +381,6 @@ func handleList(manager *preset.Manager, flags *cli.CommandFlags) {
 		fmt.Printf("  Windows: %d\n", meta.WindowCount)
 		fmt.Println()
 	}
-
-	// warn about incompatible flags
-	warnIncompatibleFlags(flags, "list")
 }
 
 func handleDelete(manager *preset.Manager, flags *cli.CommandFlags, args []string) {
@@ -450,6 +481,25 @@ func filterValidWorkspaces(workspaces []layout.WorkspaceLayout, identifiers []st
 	return valid, invalid
 }
 
+// counts total number of containers across all workspaces
+func countContainers(workspaces []layout.WorkspaceLayout) int {
+	count := 0
+	for _, ws := range workspaces {
+		count += countContainersRecursive(ws.Containers)
+	}
+	return count
+}
+
+func countContainersRecursive(containers []layout.ContainerLayout) int {
+	count := len(containers)
+	for _, container := range containers {
+		if len(container.Children) > 0 {
+			count += countContainersRecursive(container.Children)
+		}
+	}
+	return count
+}
+
 // focuses the specified workspace by number or name
 func focusWorkspace(swayClient *sway.Client, identifier string) error {
 	// check if identifier is a workspace number
@@ -520,6 +570,8 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 	flagCompatibility := map[string][]string{
 		"--skip-workspace": {"save", "load"},
 		"--only-workspace": {"save", "load"},
+		"--skip-app": {"save", "load"},
+		"--only-app": {"save", "load"},
 		"--focus-workspace": {"load"},
 		"--overwrite": {"save"},
 		"--ignore-floating": {"save", "load"},
@@ -537,6 +589,8 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 	flagChecks := []flagCheck{
 		{"--skip-workspace", len(flags.SkipWorkspaces) > 0},
 		{"--only-workspace", len(flags.OnlyWorkspaces) > 0},
+		{"--skip-app", len(flags.SkipApps) > 0},
+		{"--only-app", len(flags.OnlyApps) > 0},
 		{"--focus-workspace", flags.FocusWorkspace != ""},
 		{"--overwrite", flags.Overwrite},
 		{"--ignore-floating", flags.IgnoreFloating},

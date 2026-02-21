@@ -13,6 +13,8 @@ Commands:
 Flags:
   --skip-workspace=<id>[,<id>...]   Skip workspaces by number or name (comma-separated)
   --only-workspace=<id>[,<id>...]   Include only specified workspaces (comma-separated)
+  --skip-app=<id>[,<id>...]         Skip specified applications by app_id or class (comma-separated)
+  --only-app=<id>[,<id>...]         Include only specified applications by app_id or class (comma-separated)
   --focus-workspace=<id>            Focus specified workspace after restoration
   --ignore-floating                 Ignore floating windows (not saved or restored)
   --reuse-all                       Reuse existing windows instead of launching new instances (load only)

@@ -389,20 +389,6 @@ func (r *Restorer) waitForWindow(container *ContainerLayout, timeout time.Durati
 	return fmt.Errorf("timeout waiting for window %s/%s", container.AppID, container.WindowClass)
 }
 
-// builds a window selection criteria string
-func (r *Restorer) buildWindowCriteria(container *ContainerLayout) string {
-	var criteria []string
-
-	if container.AppID != "" {
-		criteria = append(criteria, fmt.Sprintf("app_id=\"%s\"", container.AppID))
-	}
-	if container.WindowClass != "" {
-		criteria = append(criteria, fmt.Sprintf("class=\"%s\"", container.WindowClass))
-	}
-
-	return strings.Join(criteria, " ")
-}
-
 // verifies that the restoration was successful
 func (r *Restorer) verifyRestoration(preset *Preset) error {
 	// collect all containers with exec commands
