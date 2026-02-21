@@ -13,6 +13,7 @@ type CommandFlags struct {
 	SkipApps []string // for --skip-app=
 	OnlyApps []string // for --only-app=
 	FocusWorkspace string // for --focus-workspace=
+	FocusApp string // for --focus-app=
 	Export string // for --export=
 	Import string // for --import=
 	Overwrite bool // for --overwrite
@@ -74,7 +75,7 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 // checks if a flag name is a recognized flag that requires a value
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
-	case "--skip-workspace", "--only-workspace", "--skip-app", "--only-app", "--focus-workspace", "--export", "--import", "--reuse":
+	case "--skip-workspace", "--only-workspace", "--skip-app", "--only-app", "--focus-workspace", "--focus-app", "--export", "--import", "--reuse":
 		return true
 	default:
 		return false
@@ -149,6 +150,9 @@ func parseValueFlag(flags *CommandFlags, flagName string, flagValue string) bool
 		return true
 	case "--focus-workspace":
 		flags.FocusWorkspace = strings.TrimSpace(flagValue)
+		return true
+	case "--focus-app":
+		flags.FocusApp = strings.TrimSpace(flagValue)
 		return true
 	case "--export":
 		flags.Export = strings.TrimSpace(flagValue)

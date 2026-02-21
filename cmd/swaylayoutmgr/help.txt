@@ -16,6 +16,7 @@ Flags:
   --skip-app=<id>[,<id>...]         Skip specified applications by app_id or class (comma-separated)
   --only-app=<id>[,<id>...]         Include only specified applications by app_id or class (comma-separated)
   --focus-workspace=<id>            Focus specified workspace after restoration
+  --focus-app=<id>                  Focus specified application after restoration by app_id or class
   --ignore-floating                 Ignore floating windows (not saved or restored)
   --clear                           Close all windows in workspaces before restoring (load only)
   --clear-all                       Close all windows in every workspace before restoring (load only)

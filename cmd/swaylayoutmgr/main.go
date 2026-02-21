@@ -252,6 +252,11 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		os.Exit(1)
 	}
 
+	if flags.FocusWorkspace != "" && flags.FocusApp != "" {
+		fmt.Fprintf(os.Stderr, "Error: Cannot use both --focus-workspace and --focus-app flags together\n")
+		os.Exit(1)
+	}
+
 	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
 		// warn about non-existent workspace identifiers
@@ -356,6 +361,15 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 			fmt.Fprintf(os.Stderr, "Warning: Failed to focus workspace '%s': %v\n", flags.FocusWorkspace, err)
 		} else {
 			fmt.Printf("\nFocused workspace '%s'\n", flags.FocusWorkspace)
+		}
+	}
+
+	// focus application if flag is set
+	if flags.FocusApp != "" {
+		if err := focusApplication(swayClient, flags.FocusApp); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to focus application '%s': %v\n", flags.FocusApp, err)
+		} else {
+			fmt.Printf("\nFocused application '%s'\n", flags.FocusApp)
 		}
 	}
 
@@ -516,6 +530,55 @@ func focusWorkspace(swayClient *sway.Client, identifier string) error {
 	return swayClient.RunCommand(fmt.Sprintf("workspace %s", identifier))
 }
 
+// focuses the specified application by app_id or class
+func focusApplication(swayClient *sway.Client, identifier string) error {
+	tree, err := swayClient.GetTree()
+	if err != nil {
+		return fmt.Errorf("failed to get window tree: %w", err)
+	}
+
+	// search for the application in the tree
+	if !findApplicationInTree(tree, identifier) {
+		return fmt.Errorf("application '%s' not found", identifier)
+	}
+
+	// try focusing by app_id first
+	err = swayClient.RunCommand(fmt.Sprintf("[app_id=\"%s\"] focus", identifier))
+	if err == nil {
+		return nil
+	}
+
+	err = swayClient.RunCommand(fmt.Sprintf("[class=\"%s\"] focus", identifier))
+	return err
+}
+
+// recursively searches for an application in the window tree
+func findApplicationInTree(node *sway.Node, identifier string) bool {
+	// check if this node matches by app_id
+	if node.AppID == identifier {
+		return true
+	}
+
+	// check if this node matches by window class (X11)
+	if node.WindowProperties != nil && node.WindowProperties.Class == identifier {
+		return true
+	}
+
+	// search children
+	for i := range node.Nodes {
+		if findApplicationInTree(&node.Nodes[i], identifier) {
+			return true
+		}
+	}
+	for i := range node.FloatingNodes {
+		if findApplicationInTree(&node.FloatingNodes[i], identifier) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // exports a preset to a custom file path
 func exportToFile(preset *layout.Preset, dirPath string, name string) (string, error) {
 	// validate that the directory exists or create it
@@ -580,6 +643,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		"--skip-app": {"save", "load"},
 		"--only-app": {"save", "load"},
 		"--focus-workspace": {"load"},
+		"--focus-app": {"load"},
 		"--overwrite": {"save"},
 		"--ignore-floating": {"save", "load"},
 		"--export": {"save"},
@@ -601,6 +665,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		{"--skip-app", len(flags.SkipApps) > 0},
 		{"--only-app", len(flags.OnlyApps) > 0},
 		{"--focus-workspace", flags.FocusWorkspace != ""},
+		{"--focus-app", flags.FocusApp != ""},
 		{"--overwrite", flags.Overwrite},
 		{"--ignore-floating", flags.IgnoreFloating},
 		{"--export", flags.Export != ""},
