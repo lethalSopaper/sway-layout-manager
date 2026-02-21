@@ -134,6 +134,12 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		}
 	}
 
+	// filter floating windows if flag is set
+	if flags.IgnoreFloating {
+		preset.Workspaces = layout.FilterFloatingContainers(preset.Workspaces)
+		fmt.Printf("Ignoring floating windows\n")
+	}
+
 	// saves the preset
 	if err := manager.Save(preset); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to save preset: %v\n", err)
@@ -211,6 +217,12 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		if included > 0 {
 			fmt.Printf("Restoring only %d specified workspace(s)\n", included)
 		}
+	}
+
+	// filter floating windows if flag is set
+	if flags.IgnoreFloating {
+		preset.Workspaces = layout.FilterFloatingContainers(preset.Workspaces)
+		fmt.Printf("Ignoring floating windows\n")
 	}
 
 	fmt.Printf("Restoring layout '%s'...\n", name)
@@ -360,12 +372,12 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 
 	switch command {
 	case "save":
-		// save supports: --skip-workspace, --only-workspace, --overwrite
+		// save supports: --skip-workspace, --only-workspace, --overwrite, --ignore-floating
 		if flags.FocusWorkspace != "" {
 			warnings = append(warnings, "--focus-workspace only works with 'load' command")
 		}
 	case "load":
-		// load supports: --skip-workspace, --only-workspace, --focus-workspace
+		// load supports: --skip-workspace, --only-workspace, --focus-workspace, --ignore-floating
 		if flags.Overwrite {
 			warnings = append(warnings, "--overwrite only works with 'save' command")
 		}
@@ -383,6 +395,9 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		if flags.Overwrite {
 			warnings = append(warnings, "--overwrite only works with 'save' command")
 		}
+		if flags.IgnoreFloating {
+			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
+		}
 	case "delete":
 		// delete supports no data flags
 		if len(flags.SkipWorkspaces) > 0 {
@@ -396,6 +411,9 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		}
 		if flags.Overwrite {
 			warnings = append(warnings, "--overwrite only works with 'save' command")
+		}
+		if flags.IgnoreFloating {
+			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
 		}
 	}
 

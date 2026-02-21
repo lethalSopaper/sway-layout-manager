@@ -2,6 +2,7 @@ package layout
 
 import (
 	"strconv"
+	"strings"
 )
 
 // excludes workspaces matching the given identifiers
@@ -60,5 +61,38 @@ func FilterOnlyWorkspaces(workspaces []WorkspaceLayout, onlyIdentifiers []string
 			filtered = append(filtered, ws)
 		}
 	}
+	return filtered
+}
+
+// removes floating containers from workspaces
+func FilterFloatingContainers(workspaces []WorkspaceLayout) []WorkspaceLayout {
+	var filtered []WorkspaceLayout
+
+	for _, ws := range workspaces {
+		// filter containers in this workspace
+		wsFiltered := ws
+		wsFiltered.Containers = filterFloatingFromContainers(ws.Containers)
+		filtered = append(filtered, wsFiltered)
+	}
+
+	return filtered
+}
+
+func filterFloatingFromContainers(containers []ContainerLayout) []ContainerLayout {
+	var filtered []ContainerLayout
+
+	for _, container := range containers {
+		if strings.HasSuffix(container.Floating, "_on") {
+			continue
+		}
+
+		// for non-floating containers, recursively filter their children
+		if len(container.Children) > 0 {
+			container.Children = filterFloatingFromContainers(container.Children)
+		}
+
+		filtered = append(filtered, container)
+	}
+
 	return filtered
 }

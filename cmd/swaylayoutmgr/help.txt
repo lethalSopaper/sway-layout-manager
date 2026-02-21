@@ -14,6 +14,7 @@ Flags:
   --skip-workspace=<id>[,<id>...]   Skip workspaces by number or name (comma-separated)
   --only-workspace=<id>[,<id>...]   Include only specified workspaces (comma-separated)
   --focus-workspace=<id>            Focus specified workspace after restoration
+  --ignore-floating                 Ignore floating windows (not saved or restored)
                                     Quote workspace names with spaces
   --overwrite                       Overwrite existing preset without confirmation
   -h, --help                        Show this help message

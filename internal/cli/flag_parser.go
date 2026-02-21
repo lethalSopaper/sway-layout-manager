@@ -12,6 +12,7 @@ type CommandFlags struct {
 	OnlyWorkspaces []string // for --only-workspace=
 	FocusWorkspace string   // for --focus-workspace=
 	Overwrite      bool     // for --overwrite
+	IgnoreFloating bool     // for --ignore-floating
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -77,6 +78,9 @@ func parseBooleanFlag(flags *CommandFlags, flagName string) bool {
 	switch flagName {
 	case "--overwrite":
 		flags.Overwrite = true
+		return true
+	case "--ignore-floating":
+		flags.IgnoreFloating = true
 		return true
 	default:
 		return false
