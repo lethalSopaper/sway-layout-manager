@@ -272,11 +272,20 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		fmt.Printf("Ignoring floating windows\n")
 	}
 
+	// warn if both reuse flags are used together
+	if flags.ReuseAll && len(flags.ReuseApps) > 0 {
+		fmt.Fprintf(os.Stderr, "Warning: --reuse-all is set, ignoring --reuse flag\n")
+	}
+
 	fmt.Printf("Restoring layout '%s'...\n", name)
 
 	// restore the layout
 	restorer := layout.NewRestorer(swayClient)
 	restorer.ReuseExistingWindows = flags.ReuseAll
+
+	if !flags.ReuseAll {
+		restorer.ReuseApps = flags.ReuseApps
+	}
 	result, err := restorer.Restore(preset)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to restore layout: %v\n", err)
@@ -517,6 +526,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		"--export": {"save"},
 		"--import": {"load"},
 		"--reuse-all": {"load"},
+		"--reuse": {"load"},
 	}
 
 	type flagCheck struct {
@@ -533,6 +543,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		{"--export", flags.Export != ""},
 		{"--import", flags.Import != ""},
 		{"--reuse-all", flags.ReuseAll},
+		{"--reuse", len(flags.ReuseApps) > 0},
 	}
 
 	var warnings []string

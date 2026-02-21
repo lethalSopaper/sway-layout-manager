@@ -16,6 +16,7 @@ type CommandFlags struct {
 	Overwrite      bool     // for --overwrite
 	IgnoreFloating bool     // for --ignore-floating
 	ReuseAll       bool     // for --reuse-all
+	ReuseApps      []string // for --reuse=
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -69,7 +70,7 @@ func ParseFlags(args []string) (*CommandFlags, string, []string) {
 // checks if a flag name is a recognized flag that requires a value
 func isKnownValueFlag(flagName string) bool {
 	switch flagName {
-	case "--skip-workspace", "--only-workspace", "--focus-workspace", "--export", "--import":
+	case "--skip-workspace", "--only-workspace", "--focus-workspace", "--export", "--import", "--reuse":
 		return true
 	default:
 		return false
@@ -124,6 +125,15 @@ func parseValueFlag(flags *CommandFlags, flagName string, flagValue string) bool
 		return true
 	case "--import":
 		flags.Import = strings.TrimSpace(flagValue)
+		return true
+	case "--reuse":
+		identifiers := strings.Split(flagValue, ",")
+		for _, id := range identifiers {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				flags.ReuseApps = append(flags.ReuseApps, id)
+			}
+		}
 		return true
 	default:
 		return false

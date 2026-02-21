@@ -9,10 +9,7 @@ import (
 var AppVersion string
 var HelpText string
 
-// HandleStandaloneFlag processes standalone boolean flags (no value required)
-// These flags control program behavior directly without data processing
-// Examples: --help, --version, --overwrite, --verbose
-// Returns true if the flag was recognized and handled
+// processes standalone boolean flags (no value required)
 func HandleStandaloneFlag(flag string) bool {
 	switch flag {
 	case "--help", "-h":

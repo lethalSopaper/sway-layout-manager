@@ -12,6 +12,7 @@ type Restorer struct {
 	client *sway.Client
 	errors []error // non-fatal errors during restoration
 	ReuseExistingWindows bool
+	ReuseApps []string
 	reusedWindowIDs map[int64]bool // tracks IDs of windows that have been reused
 }
 
@@ -230,7 +231,7 @@ func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *R
 	}
 
 	// check if application is already running and reuse if enabled
-	if r.ReuseExistingWindows {
+	if r.ReuseExistingWindows || len(r.ReuseApps) > 0 {
 		if window := r.findAvailableWindow(container); window != nil {
 			// set the app as reused
 			r.reusedWindowIDs[window.ID] = true
@@ -247,7 +248,7 @@ func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *R
 	// brief delay to allow window to start
 	time.Sleep(400 * time.Millisecond)
 
-	if r.ReuseExistingWindows {
+	if r.ReuseExistingWindows || len(r.ReuseApps) > 0 {
 		if window := r.findAvailableWindow(container); window != nil {
 			r.reusedWindowIDs[window.ID] = true
 		}
@@ -291,17 +292,24 @@ func (r *Restorer) isApplicationRunning(container *ContainerLayout) bool {
 
 // finds a window in the tree matching the container
 func (r *Restorer) findWindowInTree(node *sway.Node, container *ContainerLayout) *sway.Node {
-	// check if this node matches and hasn't been reused yet
-	if container.AppID != "" && node.AppID == container.AppID {
-		if !r.reusedWindowIDs[node.ID] {
-			return node
-		}
+	// extract the window class if available
+	var windowClass string
+	if node.WindowProperties != nil {
+		windowClass = node.WindowProperties.Class
 	}
-	if container.WindowClass != "" && node.WindowProperties != nil &&
-		node.WindowProperties.Class == container.WindowClass {
-		if !r.reusedWindowIDs[node.ID] {
-			return node
-		}
+
+	// check if this node matches the container's app_id or class
+	nodeMatches := false
+	if container.AppID != "" && node.AppID == container.AppID {
+		nodeMatches = true
+	}
+	if container.WindowClass != "" && windowClass == container.WindowClass {
+		nodeMatches = true
+	}
+
+	// if the node matches and should be reused, return it
+	if nodeMatches && !r.reusedWindowIDs[node.ID] && r.shouldReuseWindow(node.AppID, windowClass) {
+		return node
 	}
 
 	// search children
@@ -317,6 +325,28 @@ func (r *Restorer) findWindowInTree(node *sway.Node, container *ContainerLayout)
 	}
 
 	return nil
+}
+
+// determines if a window should be reused
+func (r *Restorer) shouldReuseWindow(appID string, windowClass string) bool {
+	// if --reuse-all is enabled
+	if r.ReuseExistingWindows {
+		return true
+	}
+
+	// if --reuse is empty
+	if len(r.ReuseApps) == 0 {
+		return false
+	}
+
+	// check if the window matches any of the ReuseApps criteria
+	for _, criteria := range r.ReuseApps {
+		if criteria == appID || criteria == windowClass {
+			return true
+		}
+	}
+
+	return false
 }
 
 // finds any window in the tree matching the container
