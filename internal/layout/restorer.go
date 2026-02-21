@@ -12,6 +12,7 @@ type Restorer struct {
 	client *sway.Client
 	errors []error // non-fatal errors during restoration
 	ReuseExistingWindows bool
+	reusedWindowIDs map[int64]bool // tracks IDs of windows that have been reused
 }
 
 // contains the outcome of a restoration operation
@@ -37,6 +38,7 @@ func (r *Restorer) Restore(preset *Preset) (*RestoreResult, error) {
 	}
 
 	r.errors = []error{}
+	r.reusedWindowIDs = make(map[int64]bool)
 	result := &RestoreResult{}
 
 	// save current workspace to return to it after restoration
@@ -228,9 +230,13 @@ func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *R
 	}
 
 	// check if application is already running and reuse if enabled
-	if r.ReuseExistingWindows && r.isApplicationRunning(container) {
-		result.ApplicationsReused++
-		return nil
+	if r.ReuseExistingWindows {
+		if window := r.findAvailableWindow(container); window != nil {
+			// set the app as reused
+			r.reusedWindowIDs[window.ID] = true
+			result.ApplicationsReused++
+			return nil
+		}
 	}
 
 	// launch the application
@@ -240,6 +246,12 @@ func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *R
 
 	// brief delay to allow window to start
 	time.Sleep(400 * time.Millisecond)
+
+	if r.ReuseExistingWindows {
+		if window := r.findAvailableWindow(container); window != nil {
+			r.reusedWindowIDs[window.ID] = true
+		}
+	}
 
 	result.ApplicationsLaunched++
 	return nil
@@ -257,18 +269,58 @@ func (r *Restorer) collectLeafWindows(container *ContainerLayout, result *[]*Con
 	}
 }
 
-// checks if an application is already running
+// finds an available (not yet reused) window for the given container
+func (r *Restorer) findAvailableWindow(container *ContainerLayout) *sway.Node {
+	tree, err := r.client.GetTree()
+	if err != nil {
+		return nil
+	}
+
+	return r.findWindowInTree(tree, container)
+}
+
+// checks if an application is running (regardless of reuse status)
 func (r *Restorer) isApplicationRunning(container *ContainerLayout) bool {
 	tree, err := r.client.GetTree()
 	if err != nil {
 		return false
 	}
 
-	return r.findWindowInTree(tree, container) != nil
+	return r.findAnyWindowInTree(tree, container) != nil
 }
 
 // finds a window in the tree matching the container
 func (r *Restorer) findWindowInTree(node *sway.Node, container *ContainerLayout) *sway.Node {
+	// check if this node matches and hasn't been reused yet
+	if container.AppID != "" && node.AppID == container.AppID {
+		if !r.reusedWindowIDs[node.ID] {
+			return node
+		}
+	}
+	if container.WindowClass != "" && node.WindowProperties != nil &&
+		node.WindowProperties.Class == container.WindowClass {
+		if !r.reusedWindowIDs[node.ID] {
+			return node
+		}
+	}
+
+	// search children
+	for i := range node.Nodes {
+		if found := r.findWindowInTree(&node.Nodes[i], container); found != nil {
+			return found
+		}
+	}
+	for i := range node.FloatingNodes {
+		if found := r.findWindowInTree(&node.FloatingNodes[i], container); found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
+// finds any window in the tree matching the container
+func (r *Restorer) findAnyWindowInTree(node *sway.Node, container *ContainerLayout) *sway.Node {
 	// check if this node matches
 	if container.AppID != "" && node.AppID == container.AppID {
 		return node
@@ -280,12 +332,12 @@ func (r *Restorer) findWindowInTree(node *sway.Node, container *ContainerLayout)
 
 	// search children
 	for i := range node.Nodes {
-		if found := r.findWindowInTree(&node.Nodes[i], container); found != nil {
+		if found := r.findAnyWindowInTree(&node.Nodes[i], container); found != nil {
 			return found
 		}
 	}
 	for i := range node.FloatingNodes {
-		if found := r.findWindowInTree(&node.FloatingNodes[i], container); found != nil {
+		if found := r.findAnyWindowInTree(&node.FloatingNodes[i], container); found != nil {
 			return found
 		}
 	}
