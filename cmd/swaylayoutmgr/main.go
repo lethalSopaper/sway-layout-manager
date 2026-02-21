@@ -247,6 +247,11 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		os.Exit(1)
 	}
 
+	if flags.Clear && flags.ClearAll {
+		fmt.Fprintf(os.Stderr, "Error: Cannot use both --clear and --clear-all flags together\n")
+		os.Exit(1)
+	}
+
 	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
 		// warn about non-existent workspace identifiers
@@ -318,6 +323,7 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 		restorer.ReuseApps = flags.ReuseApps
 	}
 	restorer.ClearWorkspaces = flags.Clear
+	restorer.ClearAllWorkspaces = flags.ClearAll
 	result, err := restorer.Restore(preset)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to restore layout: %v\n", err)
@@ -581,6 +587,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		"--reuse-all": {"load"},
 		"--reuse": {"load"},
 		"--clear": {"load"},
+		"--clear-all": {"load"},
 	}
 
 	type flagCheck struct {
@@ -599,6 +606,7 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		{"--export", flags.Export != ""},
 		{"--import", flags.Import != ""},
 		{"--clear", flags.Clear},
+		{"--clear-all", flags.ClearAll},
 		{"--reuse-all", flags.ReuseAll},
 		{"--reuse", len(flags.ReuseApps) > 0},
 	}

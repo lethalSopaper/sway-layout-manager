@@ -20,6 +20,7 @@ type CommandFlags struct {
 	ReuseAll bool // for --reuse-all
 	ReuseApps []string // for --reuse=
 	Clear bool // for --clear
+	ClearAll bool // for --clear-all
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -94,6 +95,9 @@ func parseBooleanFlag(flags *CommandFlags, flagName string) bool {
 		return true
 	case "--clear":
 		flags.Clear = true
+		return true
+	case "--clear-all":
+		flags.ClearAll = true
 		return true
 	default:
 		return false

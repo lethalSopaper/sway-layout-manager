@@ -14,6 +14,7 @@ type Restorer struct {
 	ReuseExistingWindows bool
 	ReuseApps []string
 	ClearWorkspaces bool
+	ClearAllWorkspaces bool
 	reusedWindowIDs map[int64]bool // tracks IDs of windows that have been reused
 }
 
@@ -55,7 +56,11 @@ func (r *Restorer) Restore(preset *Preset) (*RestoreResult, error) {
 	}
 
 	// clear windows in workspaces if requested
-	if r.ClearWorkspaces {
+	if r.ClearAllWorkspaces {
+		if err := r.clearAllWorkspaces(); err != nil {
+			r.errors = append(r.errors, fmt.Errorf("clear all workspaces: %w", err))
+		}
+	} else if r.ClearWorkspaces {
 		if err := r.clearWorkspacesBeforeRestore(preset.Workspaces); err != nil {
 			r.errors = append(r.errors, fmt.Errorf("clear workspaces: %w", err))
 		}
@@ -439,6 +444,34 @@ func (r *Restorer) collectContainersWithExec(containers *[]ContainerLayout, resu
 }
 
 // clears all windows from the specified workspaces
+func (r *Restorer) clearAllWorkspaces() error {
+	tree, err := r.client.GetTree()
+	if err != nil {
+		return fmt.Errorf("failed to get window tree: %w", err)
+	}
+
+	// close windows in all workspaces
+	r.closeAllWorkspacesInTree(tree)
+	return nil
+}
+
+// recursively finds all workspaces and closes their windows
+func (r *Restorer) closeAllWorkspacesInTree(node *sway.Node) {
+	// if this is a workspace node, close all its windows
+	if node.Type == "workspace" {
+		r.closeAllWindowsInNode(node)
+		return
+	}
+
+	// recursively search children for workspace nodes
+	for i := range node.Nodes {
+		r.closeAllWorkspacesInTree(&node.Nodes[i])
+	}
+	for i := range node.FloatingNodes {
+		r.closeAllWorkspacesInTree(&node.FloatingNodes[i])
+	}
+}
+
 func (r *Restorer) clearWorkspacesBeforeRestore(workspaces []WorkspaceLayout) error {
 	tree, err := r.client.GetTree()
 	if err != nil {

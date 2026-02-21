@@ -18,6 +18,7 @@ Flags:
   --focus-workspace=<id>            Focus specified workspace after restoration
   --ignore-floating                 Ignore floating windows (not saved or restored)
   --clear                           Close all windows in workspaces before restoring (load only)
+  --clear-all                       Close all windows in every workspace before restoring (load only)
   --reuse-all                       Reuse existing windows instead of launching new instances (load only)
   --reuse=<app_id>[,<app_id>...]    Reuse existing windows only for specified app_id or class (load only)
   --export=<directory>              Export layout to specified directory (save only)
