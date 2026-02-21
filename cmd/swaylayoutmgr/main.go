@@ -2,8 +2,10 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -140,10 +142,21 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		fmt.Printf("Ignoring floating windows\n")
 	}
 
-	// saves the preset
-	if err := manager.Save(preset); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to save preset: %v\n", err)
-		os.Exit(1)
+	// export to custom path or save to presets directory
+	if flags.Export != "" {
+		filePath, err := exportToFile(preset, flags.Export, name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to export layout: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfully exported layout to '%s'\n", filePath)
+	} else {
+		// saves the preset to default directory
+		if err := manager.Save(preset); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to save preset: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Successfully saved layout preset '%s'\n", name)
 	}
 
 	// count total containers
@@ -152,37 +165,57 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 		totalContainers += len(ws.Containers)
 	}
 
-	fmt.Printf("Successfully saved layout preset '%s'\n", name)
 	fmt.Printf("- Outputs: %d\n", len(preset.Outputs))
 	fmt.Printf("- Workspaces: %d\n", len(preset.Workspaces))
 	fmt.Printf("- Containers: %d\n", totalContainers)
 
-	if flags.FocusWorkspace != "" {
-		fmt.Fprintf(os.Stderr, "\nWarning: --focus-workspace flag only works with 'load' command (ignored)\n")
-	}
+	// warn about incompatible flags
+	warnIncompatibleFlags(flags, "save")
 }
 
 func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.CommandFlags, args []string) {
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
-		fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr load <name>\n")
-		fmt.Fprintf(os.Stderr, "\nRun 'swaylayoutmgr list' to see available presets.\n")
-		os.Exit(1)
-	}
-	name := args[0]
+	var preset *layout.Preset
+	var err error
+	var name string
 
-	// check if preset exists
-	if !manager.Exists(name) {
-		fmt.Fprintf(os.Stderr, "Error: Preset '%s' not found\n", name)
-		fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr list' to see available presets.\n")
-		os.Exit(1)
-	}
+	// import from custom path or load from presets directory
+	if flags.Import != "" {
+		if len(args) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
+			fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr --import=<directory> load <name>\n")
+			os.Exit(1)
+		}
+		name = args[0]
+		
+		importedPreset, err := importFromFile(flags.Import, name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to import layout: %v\n", err)
+			os.Exit(1)
+		}
+		preset = &importedPreset
+		fmt.Printf("Imported layout from '%s'\n", filepath.Join(flags.Import, name+".json"))
+	} else {
+		if len(args) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: Missing preset name\n")
+			fmt.Fprintf(os.Stderr, "Usage: swaylayoutmgr load <name>\n")
+			fmt.Fprintf(os.Stderr, "\nRun 'swaylayoutmgr list' to see available presets.\n")
+			os.Exit(1)
+		}
+		name = args[0]
 
-	// load the preset
-	preset, err := manager.Load(name)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to load preset: %v\n", err)
-		os.Exit(1)
+		// check if preset exists
+		if !manager.Exists(name) {
+			fmt.Fprintf(os.Stderr, "Error: Preset '%s' not found\n", name)
+			fmt.Fprintf(os.Stderr, "Run 'swaylayoutmgr list' to see available presets.\n")
+			os.Exit(1)
+		}
+
+		// load the preset
+		preset, err = manager.Load(name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load preset: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// check for conflicting flags
@@ -366,20 +399,82 @@ func focusWorkspace(swayClient *sway.Client, identifier string) error {
 	return swayClient.RunCommand(fmt.Sprintf("workspace %s", identifier))
 }
 
+// exports a preset to a custom file path
+func exportToFile(preset *layout.Preset, dirPath string, name string) (string, error) {
+	// validate that the directory exists or create it
+	info, err := os.Stat(dirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("directory does not exist: %s", dirPath)
+		}
+		return "", fmt.Errorf("failed to access directory %s: %w", dirPath, err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("path is not a directory: %s", dirPath)
+	}
+
+	// construct full file path
+	filePath := filepath.Join(dirPath, name+".json")
+
+	data, err := json.MarshalIndent(preset, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal preset to JSON: %w", err)
+	}
+
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return "", fmt.Errorf("failed to write file %s: %w", filePath, err)
+	}
+
+	return filePath, nil
+}
+
+// imports a preset from a custom directory path
+func importFromFile(dirPath string, name string) (layout.Preset, error) {
+	// validate that the directory exists
+	info, err := os.Stat(dirPath)
+	if err != nil {
+		return layout.Preset{}, fmt.Errorf("failed to access directory %s: %w", dirPath, err)
+	}
+	if !info.IsDir() {
+		return layout.Preset{}, fmt.Errorf("path is not a directory: %s", dirPath)
+	}
+
+	// construct full file path
+	filePath := filepath.Join(dirPath, name+".json")
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return layout.Preset{}, fmt.Errorf("failed to read file %s: %w", filePath, err)
+	}
+
+	var preset layout.Preset
+	if err := json.Unmarshal(data, &preset); err != nil {
+		return layout.Preset{}, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return preset, nil
+}
+
 // warnIncompatibleFlags warns about flags that don't apply to the given command
 func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 	var warnings []string
 
 	switch command {
 	case "save":
-		// save supports: --skip-workspace, --only-workspace, --overwrite, --ignore-floating
+		// save supports: --skip-workspace, --only-workspace, --overwrite, --ignore-floating, --export
 		if flags.FocusWorkspace != "" {
 			warnings = append(warnings, "--focus-workspace only works with 'load' command")
 		}
+		if flags.Import != "" {
+			warnings = append(warnings, "--import only works with 'load' command")
+		}
 	case "load":
-		// load supports: --skip-workspace, --only-workspace, --focus-workspace, --ignore-floating
+		// load supports: --skip-workspace, --only-workspace, --focus-workspace, --ignore-floating, --import
 		if flags.Overwrite {
 			warnings = append(warnings, "--overwrite only works with 'save' command")
+		}
+		if flags.Export != "" {
+			warnings = append(warnings, "--export only works with 'save' command")
 		}
 	case "list":
 		// list supports no data flags
@@ -398,6 +493,12 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		if flags.IgnoreFloating {
 			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
 		}
+		if flags.Export != "" {
+			warnings = append(warnings, "--export only works with 'save' command")
+		}
+		if flags.Import != "" {
+			warnings = append(warnings, "--import only works with 'load' command")
+		}
 	case "delete":
 		// delete supports no data flags
 		if len(flags.SkipWorkspaces) > 0 {
@@ -414,6 +515,12 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 		}
 		if flags.IgnoreFloating {
 			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
+		}
+		if flags.Export != "" {
+			warnings = append(warnings, "--export only works with 'save' command")
+		}
+		if flags.Import != "" {
+			warnings = append(warnings, "--import only works with 'load' command")
 		}
 	}
 
