@@ -15,6 +15,7 @@ type CommandFlags struct {
 	Import         string   // for --import=
 	Overwrite      bool     // for --overwrite
 	IgnoreFloating bool     // for --ignore-floating
+	ReuseAll       bool     // for --reuse-all
 }
 
 // parses command-line arguments and returns flags, command, and remaining args
@@ -83,6 +84,9 @@ func parseBooleanFlag(flags *CommandFlags, flagName string) bool {
 		return true
 	case "--ignore-floating":
 		flags.IgnoreFloating = true
+		return true
+	case "--reuse-all":
+		flags.ReuseAll = true
 		return true
 	default:
 		return false

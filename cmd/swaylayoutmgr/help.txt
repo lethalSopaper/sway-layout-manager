@@ -15,6 +15,7 @@ Flags:
   --only-workspace=<id>[,<id>...]   Include only specified workspaces (comma-separated)
   --focus-workspace=<id>            Focus specified workspace after restoration
   --ignore-floating                 Ignore floating windows (not saved or restored)
+  --reuse-all                       Reuse existing windows instead of launching new instances (load only)
   --export=<directory>              Export layout to specified directory (save only)
   --import=<directory>              Import layout from specified directory (load only)
                                     Quote workspace names with spaces

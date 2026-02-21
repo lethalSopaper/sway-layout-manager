@@ -18,6 +18,7 @@ type Restorer struct {
 type RestoreResult struct {
 	WorkspacesRestored int
 	ApplicationsLaunched int
+	ApplicationsReused int
 	ApplicationsFailed int
 	Errors []error
 }
@@ -228,7 +229,7 @@ func (r *Restorer) launchApplicationDirect(container *ContainerLayout, result *R
 
 	// check if application is already running and reuse if enabled
 	if r.ReuseExistingWindows && r.isApplicationRunning(container) {
-		result.ApplicationsLaunched++
+		result.ApplicationsReused++
 		return nil
 	}
 
@@ -361,7 +362,7 @@ func (r *Restorer) collectContainersWithExec(containers *[]ContainerLayout, resu
 	}
 }
 
-// helper function to get workspace identifier
+// helper function to get workspace identifie)
 func (r *Restorer) getWorkspaceIdentifier(workspace *WorkspaceLayout) string {
 	if workspace.Num < 0 {
 		return workspace.Name

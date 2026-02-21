@@ -186,7 +186,7 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 			os.Exit(1)
 		}
 		name = args[0]
-		
+
 		importedPreset, err := importFromFile(flags.Import, name)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to import layout: %v\n", err)
@@ -262,6 +262,7 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 
 	// restore the layout
 	restorer := layout.NewRestorer(swayClient)
+	restorer.ReuseExistingWindows = flags.ReuseAll
 	result, err := restorer.Restore(preset)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to restore layout: %v\n", err)
@@ -271,6 +272,9 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 	fmt.Printf("\nLayout '%s' restoration complete:\n", name)
 	fmt.Printf("- Workspaces restored: %d\n", result.WorkspacesRestored)
 	fmt.Printf("- Applications launched: %d\n", result.ApplicationsLaunched)
+	if result.ApplicationsReused > 0 {
+		fmt.Printf("- Applications reused: %d\n", result.ApplicationsReused)
+	}
 
 	// failed applications
 	if result.ApplicationsFailed > 0 {
@@ -455,72 +459,43 @@ func importFromFile(dirPath string, name string) (layout.Preset, error) {
 	return preset, nil
 }
 
-// warnIncompatibleFlags warns about flags that don't apply to the given command
+// warns about flags that don't apply to the given command
 func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
+	flagCompatibility := map[string][]string{
+		"--skip-workspace": {"save", "load"},
+		"--only-workspace": {"save", "load"},
+		"--focus-workspace": {"load"},
+		"--overwrite": {"save"},
+		"--ignore-floating": {"save", "load"},
+		"--export": {"save"},
+		"--import": {"load"},
+		"--reuse-all": {"load"},
+	}
+
+	type flagCheck struct {
+		name   string
+		active bool
+	}
+
+	flagChecks := []flagCheck{
+		{"--skip-workspace", len(flags.SkipWorkspaces) > 0},
+		{"--only-workspace", len(flags.OnlyWorkspaces) > 0},
+		{"--focus-workspace", flags.FocusWorkspace != ""},
+		{"--overwrite", flags.Overwrite},
+		{"--ignore-floating", flags.IgnoreFloating},
+		{"--export", flags.Export != ""},
+		{"--import", flags.Import != ""},
+		{"--reuse-all", flags.ReuseAll},
+	}
+
 	var warnings []string
 
-	switch command {
-	case "save":
-		// save supports: --skip-workspace, --only-workspace, --overwrite, --ignore-floating, --export
-		if flags.FocusWorkspace != "" {
-			warnings = append(warnings, "--focus-workspace only works with 'load' command")
-		}
-		if flags.Import != "" {
-			warnings = append(warnings, "--import only works with 'load' command")
-		}
-	case "load":
-		// load supports: --skip-workspace, --only-workspace, --focus-workspace, --ignore-floating, --import
-		if flags.Overwrite {
-			warnings = append(warnings, "--overwrite only works with 'save' command")
-		}
-		if flags.Export != "" {
-			warnings = append(warnings, "--export only works with 'save' command")
-		}
-	case "list":
-		// list supports no data flags
-		if len(flags.SkipWorkspaces) > 0 {
-			warnings = append(warnings, "--skip-workspace only works with 'save' and 'load' commands")
-		}
-		if len(flags.OnlyWorkspaces) > 0 {
-			warnings = append(warnings, "--only-workspace only works with 'save' and 'load' commands")
-		}
-		if flags.FocusWorkspace != "" {
-			warnings = append(warnings, "--focus-workspace only works with 'load' command")
-		}
-		if flags.Overwrite {
-			warnings = append(warnings, "--overwrite only works with 'save' command")
-		}
-		if flags.IgnoreFloating {
-			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
-		}
-		if flags.Export != "" {
-			warnings = append(warnings, "--export only works with 'save' command")
-		}
-		if flags.Import != "" {
-			warnings = append(warnings, "--import only works with 'load' command")
-		}
-	case "delete":
-		// delete supports no data flags
-		if len(flags.SkipWorkspaces) > 0 {
-			warnings = append(warnings, "--skip-workspace only works with 'save' and 'load' commands")
-		}
-		if len(flags.OnlyWorkspaces) > 0 {
-			warnings = append(warnings, "--only-workspace only works with 'save' and 'load' commands")
-		}
-		if flags.FocusWorkspace != "" {
-			warnings = append(warnings, "--focus-workspace only works with 'load' command")
-		}
-		if flags.Overwrite {
-			warnings = append(warnings, "--overwrite only works with 'save' command")
-		}
-		if flags.IgnoreFloating {
-			warnings = append(warnings, "--ignore-floating only works with 'save' and 'load' commands")
-		}
-		if flags.Export != "" {
-			warnings = append(warnings, "--export only works with 'save' command")
-		}
-		if flags.Import != "" {
-			warnings = append(warnings, "--import only works with 'load' command")
+	for _, check := range flagChecks {
+		if check.active {
+			compatibleCmds := flagCompatibility[check.name]
+			if !contains(compatibleCmds, command) {
+				warnings = append(warnings, formatFlagWarning(check.name, compatibleCmds))
+			}
 		}
 	}
 
@@ -530,6 +505,25 @@ func warnIncompatibleFlags(flags *cli.CommandFlags, command string) {
 			fmt.Fprintf(os.Stderr, "Warning: %s (ignored)\n", warning)
 		}
 	}
+}
+
+// checks if a slice contains a string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// formats a warning message for incompatible flags
+func formatFlagWarning(flagName string, compatibleCommands []string) string {
+	if len(compatibleCommands) == 1 {
+		return fmt.Sprintf("%s only works with '%s' command", flagName, compatibleCommands[0])
+	}
+	cmdList := strings.Join(compatibleCommands, "' and '")
+	return fmt.Sprintf("%s only works with '%s' commands", flagName, cmdList)
 }
 
 func printUsage() {
