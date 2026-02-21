@@ -110,10 +110,9 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 
 	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
-		// validate workspace identifiers exist
+		// warn about non-existent workspace identifiers
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 		}
 
 		originalCount := len(preset.Workspaces)
@@ -123,10 +122,9 @@ func handleSave(parser *layout.Parser, manager *preset.Manager, flags *cli.Comma
 			fmt.Printf("Skipped %d specified workspace(s)\n", skipped)
 		}
 	} else if len(flags.OnlyWorkspaces) > 0 {
-		// validate workspace identifiers exist
+		// warn about non-existent workspace identifiers
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 		}
 
 		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
@@ -226,10 +224,9 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 
 	// filter workspaces based on flags
 	if len(flags.SkipWorkspaces) > 0 {
-		// validate workspace identifiers exist
+		// warn about non-existent workspace identifiers
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.SkipWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 		}
 
 		originalCount := len(preset.Workspaces)
@@ -239,10 +236,9 @@ func handleLoad(manager *preset.Manager, swayClient *sway.Client, flags *cli.Com
 			fmt.Printf("Skipping %d specified workspace(s)\n", skipped)
 		}
 	} else if len(flags.OnlyWorkspaces) > 0 {
-		// validate workspace identifiers exist
+		// warn about non-existent workspace identifiers
 		if err := validateWorkspaceIdentifiers(preset.Workspaces, flags.OnlyWorkspaces); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 		}
 
 		preset.Workspaces = layout.FilterOnlyWorkspaces(preset.Workspaces, flags.OnlyWorkspaces)
