@@ -78,32 +78,213 @@ Warnings/Errors encountered:
 
 Phase 4 introduces a flexible flag parsing system that enables control over all command operations. This system is designed for extensibility, allowing multiple flags to be combined for complex behaviors.
 
-The flags intended for implementation are the following:
+\subsubsection{Available Flags}
+
+The following flags provide comprehensive control over save and load operations:
+
+\paragraph{Workspace Filtering Flags}
 
 \begin{itemize}
-    \item \texttt{--skip-workspace=}: Skip saving/restoring specified workspace(s) by name or number
-    \item \texttt{--skip-app=}: Skip specified application(s) by app\_id or class name
-    \item \texttt{--only-workspace=}: Save/restore only the specified workspace(s) by name or number
-    \item \texttt{--only-app=}: Save/restore only the specified application
-    \item \texttt{--verbose}: Enable detailed logging of operations, including command execution and error reporting
-    \item \texttt{--delete-workspace}: Remove workspace(s) from a already saved preset instead of skipping them during save/load operations. (This can be useful for GUI implementation)
-    \item \texttt{--delete-app}: Remove application(s) from a saved preset instead of skipping them during save/load operations. (This can be useful for GUI implementation)
-    \item \texttt{--scratchpad}: Include windows in the scratchpad in save/load operations
-    \item \texttt{--clear-all}: Before restore it will close all open windows and workspaces, when saving it will save the current layout and then close all windows and workspaces
-    \item \texttt{--focus-workspace=}: Focus the specified workspace after restoration
-    \item \texttt{--focus-app=}: Focus the specified application after restoration by app\_id or class name
-    \item \texttt{--reuse-app=}: Instead of launching a new instance of the application, try to reuse an existing window that matches the criteria
-    \item \texttt{--timeout=}: Set a custom timeout for waiting for windows to appear during restoration
-    \item \texttt{--timeout-workspace=}: Set a custom timeout for waiting for a specific workspace to be ready during restoration
-    \item \texttt{--timeout-app=}: Set a custom timeout for waiting for a specific application to appear during restoration
-    \item \texttt{--overwrite}: When saving, overwrite an existing preset with the same name without prompting for confirmation
-    \item \texttt{--ignore-floating}: Ignore the floating windows so that they are not saved or restored, this can be useful for users that use floating windows for transient tasks and don't want them to be part of the layout presets
-    \item \texttt{--export}: Instead of saving to the default presets directory, export the layout to a specified file path
-    \item \texttt{--import}: Instead of loading from the default presets directory, import the layout from a specified file path
-    \item \texttt{--output=}: Target specific output/monitor for restoration, useful for multi-monitor setups
-    \item \texttt{--exclude-output=}: Exclude specific output/monitor from restoration, useful for multi-monitor setups
-    \item \texttt{--single-output}: Restoration in a single monitor setup, when the preset was saved in a multi-monitor setup, it will ignore the output association and restore all windows in the single monitor
-    \item \texttt{--force}: Force restore even if some applications fail to launch, applying the layout to whatever windows are successfully opened
-    \item \texttt{--quiet}: Suppress all output except for critical errors
-    \item \texttt{--raw}: Output raw JSON result of operations instead of formatted logs (useful for scripting and GUI integration)
+    \item \textbf{\texttt{-{}-skip-workspace=<id>[,<id>...]}} \\
+    Excludes specified workspace(s) from save or restore operations. Accepts workspace numbers or names (comma-separated for multiple workspaces).
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}, \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr save my-layout -{}-skip-workspace=1,2,scratch}
+        \item \textit{Use case:} Exclude temporary workspaces from layouts
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-only-workspace=<id>[,<id>...]}} \\
+    Includes only the specified workspace(s) in save or restore operations. All other workspaces are ignored.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}, \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr save coding-setup -{}-only-workspace=2,3}
+        \item \textit{Use case:} Create focused layouts containing only relevant workspaces
+        \item \textit{Note:} Cannot be combined with \texttt{-{}-skip-workspace}
+    \end{itemize}
 \end{itemize}
+
+\paragraph{Application Filtering Flags}
+
+\begin{itemize}
+    \item \textbf{\texttt{-{}-skip-app=<id>[,<id>...]}} \\
+    Excludes specified application(s) by \texttt{app\_id} or window class name. Supports comma-separated lists.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}, \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr save layout -{}-skip-app=discord,Spotify}
+        \item \textit{Use case:} Exclude distracting applications
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-only-app=<id>[,<id>...]}} \\
+    Includes only specified application(s) in the layout. All other applications are filtered out.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}, \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr save browsers -{}-only-app=firefox,chromium}
+        \item \textit{Use case:} Create application-specific layouts (e.g., "terminal-only")
+        \item \textit{Note:} Cannot be combined with \texttt{-{}-skip-app}
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Window Type Filtering}
+
+\begin{itemize}
+    \item \textbf{\texttt{-{}-ignore-floating}} \\
+    Excludes all floating windows from save or restore operations. Only tiled, tabbed, and stacked windows are included.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}, \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr save clean-layout -{}-ignore-floating}
+        \item \textit{Use case:} Create layout presets without floating windows
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Restoration Behavior Flags}
+
+\begin{itemize}
+    \item \textbf{\texttt{-{}-clear}} \\
+    Closes all windows in workspaces that will be restored before applying the layout.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load my-layout -{}-clear}
+        \item \textit{Use case:} Ensure clean workspace state before restoration
+        \item \textit{Behavior:} Only clears workspaces present in the saved layout
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-clear-all}} \\
+    Closes all windows in every workspace before restoring the layout.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load fresh-start -{}-clear-all}
+        \item \textit{Use case:} Complete session reset with fresh layout
+        \item \textit{Warning:} Closes windows in all workspaces, not just those being restored
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-reuse-all}} \\
+    Attempts to reuse existing windows instead of launching new application instances for all applications in the layout.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load layout -{}-reuse-all}
+        \item \textit{Use case:} Reorganize existing windows without spawning duplicates
+        \item \textit{Behavior:} Matches windows by \texttt{app\_id} or window class, moves them to target workspaces
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-reuse=<app\_id>[,<app\_id>...]}} \\
+    Attempts to reuse existing windows only for specified applications. Other applications launch new instances.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load layout -{}-reuse=firefox,thunderbird}
+        \item \textit{Use case:} Reuse single-instance applications while launching fresh terminals/editors
+        \item \textit{Note:} Cannot be combined with \texttt{-{}-reuse-all}
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Focus Control Flags}
+
+\begin{itemize}
+    \item \textbf{\texttt{-{}-focus-workspace=<id>}} \\
+    After restoration completes, switches focus to the specified workspace by number or name.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load layout -{}-focus-workspace=1}
+        \item \textit{Use case:} Ensure consistent workspace context after layout restoration
+        \item \textit{Note:} Cannot be combined with \texttt{-{}-focus-app}
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-focus-app=<id>}} \\
+    After restoration completes, focuses the specified application by \texttt{app\_id} or window class.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load layout -{}-focus-app=firefox}
+        \item \textit{Use case:} Direct attention to primary application after restoration
+        \item \textit{Behavior:} If multiple instances exist, uses Sway's default focus behavior
+        \item \textit{Note:} Cannot be combined with \texttt{-{}-focus-workspace}
+    \end{itemize}
+\end{itemize}
+
+\paragraph{File Operation Flags}
+
+\begin{itemize}
+    \item \textbf{\texttt{-{}-export=<path>}} \\
+    Saves the layout to a specified file path instead of the default presets directory.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}
+        \item \textit{Example:} \texttt{swaylayoutmgr save -{}-export=/tmp/backup-layout.json}
+        \item \textit{Use case:} Create layout files in custom locations for backup or sharing
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-import=<path>}} \\
+    Loads a layout from a specified file path instead of the default presets directory.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{load}
+        \item \textit{Example:} \texttt{swaylayoutmgr load -{}-import=/tmp/backup-layout.json}
+        \item \textit{Use case:} Restore layouts from custom locations or shared files
+    \end{itemize}
+
+    \item \textbf{\texttt{-{}-overwrite}} \\
+    When saving, overwrites an existing preset with the same name without prompting for confirmation.
+    \begin{itemize}
+        \item \textit{Applicable to:} \texttt{save}
+        \item \textit{Example:} \texttt{swaylayoutmgr save my-layout -{}-overwrite}
+        \item \textit{Use case:} Automated scripts, updates to existing layouts
+        \item \textit{Default:} Without this flag, users have to delete existing presets manually before saving with the same name
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Flag Usage Examples}
+
+\paragraph{Example 1: Focused Development Layout}
+Save only workspaces 2 and 3, excluding communication apps:
+\begin{verbatim}
+swaylayoutmgr save dev-focus \
+  --only-workspace=2,3 \
+  --skip-app=discord,slack,thunderbird \
+  --ignore-floating
+\end{verbatim}
+
+\paragraph{Example 2: Clean Restoration}
+Restore layout with all windows cleared and reuse browser instances:
+\begin{verbatim}
+swaylayoutmgr load my-layout \
+  --clear-all \
+  --reuse=firefox,chromium \
+  --focus-workspace=1
+\end{verbatim}
+
+\paragraph{Example 3: Portable Layout Export}
+Export a browser-only layout to a shareable file:
+\begin{verbatim}
+swaylayoutmgr save \
+  --only-app=firefox,chromium \
+  --export=~/layouts/browsers.json \
+  --ignore-floating
+\end{verbatim}
+
+\paragraph{Example 4: Selective Workspace Clear}
+Restore specific workspaces with clean slate:
+\begin{verbatim}
+swaylayoutmgr load work-setup \
+  --only-workspace=1,2,3 \
+  --clear \
+  --focus-workspace=1
+\end{verbatim}
+
+\paragraph{Example 5: Exclude Temporary Workspaces}
+Save layout excluding scratch and temporary workspaces, reuse all existing windows, and focus a specific application:
+\begin{verbatim}
+swaylayoutmgr save main-layout \
+  --skip-workspace=scratch,temp,9 \
+  --overwrite
+swaylayoutmgr load main-layout \
+  --reuse-all \
+  --focus-app=code
+\end{verbatim}
+
+\paragraph{Example 6: Import and Update Layout}
+Import a layout from a custom location and update the existing preset:
+\begin{verbatim}
+swaylayoutmgr load \
+  --import=~/shared-layouts/team-setup.json \
+  --clear \
+  --focus-app=firefox
+swaylayoutmgr save team-setup \
+  --skip-app=spotify \
+  --overwrite
+\end{verbatim}
