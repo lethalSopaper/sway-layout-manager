@@ -1,0 +1,50 @@
+\subsection{Restoration Tests (\texttt{restore\_test.go})}
+
+\subsubsection*{\texttt{TestRestoreBasicFunctionality}}
+This test validates core restore operation functionality with empty and simple presets.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{restore empty preset} - Handles preset with no workspaces, verifies zero counters
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreWithReuseConfiguration}}
+This test validates restore operation with window reuse settings enabled.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{configure reuse existing windows} - Tests ReuseExistingWindows setting in restore operation
+        \item \texttt{configure reuse specific apps} - Tests ReuseApps array in restore operation
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreWithClearConfiguration}}
+This test validates restore operation with workspace clearing settings.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{configure clear workspaces} - Tests ClearWorkspaces setting in restore operation
+        \item \texttt{configure clear all workspaces} - Tests ClearAllWorkspaces setting in restore operation
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreErrorHandling}}
+This test validates restore operation error handling with invalid inputs.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{restore nil preset} - Handles nil preset parameter with appropriate error
+        \item \texttt{restore preset with invalid workspace} - Handles presets with invalid workspace data
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreResultTracking}}
+This test validates result tracking and statistics for restore operations.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{result tracks workspaces} - Verifies workspace restoration counters
+        \item \texttt{result structure is complete} - Validates all result fields are properly populated
+    \end{itemize}
+\end{itemize}

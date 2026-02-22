@@ -1,0 +1,61 @@
+\subsection{Operations/Filtering Tests (\texttt{operations\_test.go})}
+
+\subsubsection*{\texttt{TestFilterSkipWorkspaces}}
+This test validates workspace filtering by skip list with numbers and names.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{skip by number} - Filters workspaces by numeric identifier
+        \item \texttt{skip by name} - Filters workspaces by workspace name
+        \item \texttt{skip multiple workspaces} - Removes multiple specified workspaces
+        \item \texttt{skip non-existent workspace} - Handles skipping workspaces that don't exist
+        \item \texttt{empty skip list} - No filtering when skip list is empty
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilterOnlyWorkspaces}}
+This test validates workspace filtering to keep only specified workspaces.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{only by number} - Keeps only workspaces matching number
+        \item \texttt{only by name} - Keeps only workspaces matching name
+        \item \texttt{only multiple workspaces} - Keeps multiple specified workspaces
+        \item \texttt{empty only list} - Returns empty when only list is empty
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilterFloatingContainers}}
+This test validates filtering to exclude floating windows from layout.
+\begin{itemize}
+    \item \textbf{Tests}: Removes containers with floating type or floating enabled
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilterSkipApps}}
+This test validates application filtering by skip list using app\_id and window class.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{skip by app\_id} - Filters containers by application ID
+        \item \texttt{skip by class} - Filters containers by window class
+        \item \texttt{skip multiple apps} - Removes multiple specified applications
+        \item \texttt{empty skip list} - No filtering when skip list is empty
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilterOnlyApps}}
+This test validates application filtering to keep only specified applications.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{only by app\_id} - Keeps only containers matching app ID
+        \item \texttt{only by class} - Keeps only containers matching window class
+        \item Additional subtests for multiple apps and empty list
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilterNestedContainers}}
+This test validates recursive filtering within nested container hierarchies.
+\begin{itemize}
+    \item \textbf{Tests}: Applies filters recursively to nested container structures
+\end{itemize}

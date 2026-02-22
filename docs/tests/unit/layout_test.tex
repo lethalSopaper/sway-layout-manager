@@ -1,0 +1,28 @@
+\subsection{Layout Processing Tests (\texttt{layout\_test.go})}
+
+\subsubsection*{\texttt{TestLayoutTypes}}
+This test validates layout data structure definitions and JSON serialization for data structures.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{Preset JSON marshaling} - Complete Preset struct JSON marshal/unmarshal cycle
+        \item \texttt{OutputLayout JSON marshaling} - OutputLayout struct JSON compatibility
+        \item \texttt{WorkspaceLayout JSON marshaling} - WorkspaceLayout struct serialization
+        \item \texttt{ContainerLayout with ExecCommand JSON marshaling} - Container with exec commands
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestNewParser}}
+This test validates layout parser initialization with Sway client dependency.
+\begin{itemize}
+    \item \textbf{Tests}: Creates parser with valid Sway client or skips if unavailable
+\end{itemize}
+
+\subsubsection*{\texttt{TestCaptureCurrentLayout}}
+This test validates live workspace layout capture from Sway and real-time layout data extraction.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{successful layout capture attempt} - Captures layout from running Sway instance or handles non-Sway environments gracefully
+    \end{itemize}
+\end{itemize}

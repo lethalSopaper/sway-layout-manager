@@ -1,0 +1,33 @@
+\subsection{Sway Tests (\texttt{sway\_test.go})}
+
+\subsubsection*{\texttt{TestNewClient}}
+This test validates Sway client creation and initialization with connection setup to Sway window manager.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{successful client creation when swaymsg exists} - Creates client when swaymsg available in PATH
+        \item \texttt{client creation fails when swaymsg not available} - Handles missing swaymsg gracefully
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestClientMethods}}
+This test validates Sway client method functionality and Sway IPC command execution with response handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{GetTree method} - Retrieves complete workspace tree from Sway
+        \item \texttt{GetWorkspaces method} - Gets list of all workspaces
+        \item \texttt{GetVersion method} - Retrieves Sway version information
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSwayTypes}}
+This test validates Sway data structure definitions and JSON compatibility for Sway IPC responses.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{Node JSON unmarshaling} - Node structure JSON parsing and field validation
+        \item \texttt{Workspace JSON unmarshaling} - Workspace structure JSON compatibility
+        \item \texttt{Version JSON unmarshaling} - Version information JSON parsing
+    \end{itemize}
+\end{itemize}

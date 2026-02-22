@@ -1,0 +1,29 @@
+\subsection{Configuration Tests (\texttt{config\_test.go})}
+
+\subsubsection*{\texttt{TestNewConfig}}
+This test validates configuration constructor functionality and XDG Base Directory specification compliance.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{with default XDG paths} - Creates config using default \textasciitilde/.local/share and \textasciitilde/.config paths
+        \item \texttt{with custom XDG paths} - Uses custom XDG\_DATA\_HOME and XDG\_CONFIG\_HOME when set
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestConfigPresetPath}}
+This test validates preset file path generation functionality and file path construction with JSON extension handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{name without extension} - Adds .json extension to preset names without extension
+        \item \texttt{name with .json extension} - Handles preset names that already have .json extension
+        \item \texttt{name with other extension} - Appends .json to names with non-.json extensions
+        \item \texttt{empty name} - Handles empty preset names
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestConfigDefaultPresetName}}
+This test validates default preset name generation with PID-based naming.
+\begin{itemize}
+    \item \textbf{Tests}: Validates format ``layout-<pid>'' and ensures PID is present
+\end{itemize}

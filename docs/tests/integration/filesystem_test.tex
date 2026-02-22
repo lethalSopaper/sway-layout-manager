@@ -1,0 +1,37 @@
+\subsection{Filesystem Tests (\texttt{filesystem\_test.go})}
+
+\subsubsection*{\texttt{TestXDGDirectoryCreation}}
+This test validates real XDG directory creation and structure validation with Linux desktop directory standards.
+\begin{itemize}
+    \item \textbf{Tests}: XDG Base Directory structure creation with proper hierarchy and file persistence
+\end{itemize}
+
+\subsubsection*{\texttt{TestPresetFilePersistence}}
+This test validates complete preset save/load cycles with real files, end-to-end preset persistence.
+\begin{itemize}
+    \item \textbf{Tests}: Complex preset data persistence through complete save/load/verify cycles with multiple presets
+\end{itemize}
+
+\subsubsection*{\texttt{TestFilePermissions}}
+This test validates Unix file permission handling for security and access control.
+\begin{itemize}
+    \item \textbf{Tests}: File permissions (0644) and directory permissions (0755) validation for proper multi-user access
+\end{itemize}
+
+\subsubsection*{\texttt{TestJSONFormatValidation}}
+This test validates JSON format validation and complex data structure handling.
+\begin{itemize}
+    \item \textbf{Tests}: Complex JSON preset validation with full workspace layouts, verifies valid JSON formatting
+\end{itemize}
+
+\subsubsection*{\texttt{TestConcurrentAccess}}
+This test validates concurrent file operations and thread safety.
+\begin{itemize}
+    \item \textbf{Tests}: 5 simultaneous preset save operations to test concurrency handling and prevent race conditions
+\end{itemize}
+
+\subsubsection*{\texttt{TestDeleteFileRemoval}}
+This test validates complete file deletion and cleanup operations.
+\begin{itemize}
+    \item \textbf{Tests}: File deletion with verification of complete removal from filesystem
+\end{itemize}

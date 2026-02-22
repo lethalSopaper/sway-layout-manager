@@ -1,0 +1,42 @@
+\subsection{Operations/Filtering Tests (\texttt{operations\_test.go})}
+
+\subsubsection*{\texttt{TestSaveWithWorkspaceFiltering}}
+This test validates save operation with workspace filtering applied.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{save and skip specific workspace} - Saves layout excluding specified workspaces
+        \item \texttt{save only specific workspace} - Saves layout including only specified workspaces
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSaveWithAppFiltering}}
+This test validates save operation with application-level filtering.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{save and skip specific app} - Saves layout excluding specific applications
+        \item \texttt{save only specific app} - Saves layout including only specific applications
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSaveWithFloatingFilter}}
+This test validates save operation excluding floating windows.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{filter floating windows} - Saves layout without floating containers
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestListWithFilteredPresets}}
+This test validates list operation with preset metadata validation.
+\begin{itemize}
+    \item \textbf{Tests}: Lists presets and verifies metadata contains correct information
+\end{itemize}
+
+\subsubsection*{\texttt{TestDeleteFilteredPresets}}
+This test validates delete operation with verification of file removal.
+\begin{itemize}
+    \item \textbf{Tests}: Deletes preset and confirms complete removal from filesystem
+\end{itemize}

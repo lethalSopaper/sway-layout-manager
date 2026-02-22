@@ -1,0 +1,36 @@
+\subsection{Restoration Tests (\texttt{restorer\_test.go})}
+
+\subsubsection*{\texttt{TestNewRestorer}}
+This test validates restorer initialization with Sway client dependency.
+\begin{itemize}
+    \item \textbf{Tests}: Creates restorer with valid Sway client and verifies non-nil return
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestorerConfiguration}}
+This test validates restorer configuration options and settings for reuse and clear operations.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{default configuration} - Validates default settings (all false, empty arrays)
+        \item \texttt{reuse existing windows configuration} - Tests ReuseExistingWindows setting
+        \item \texttt{reuse specific apps configuration} - Tests ReuseApps array configuration
+        \item \texttt{clear workspaces configuration} - Tests ClearWorkspaces setting
+        \item \texttt{clear all workspaces configuration} - Tests ClearAllWorkspaces setting
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreValidation}}
+This test validates restore operation input validation and error handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{restore with nil preset} - Handles nil preset parameter with error
+        \item \texttt{restore with empty preset} - Handles preset with no workspaces gracefully
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestRestoreResultStructure}}
+This test validates RestoreResult data structure for tracking restore operations.
+\begin{itemize}
+    \item \textbf{Tests}: Validates result structure fields (WorkspacesRestored, ApplicationsLaunched, ApplicationsReused, ApplicationsFailed, Errors)
+\end{itemize}

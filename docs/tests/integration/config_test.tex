@@ -1,0 +1,51 @@
+\subsection{Configuration Tests (\texttt{config\_test.go})}
+
+\subsubsection*{\texttt{TestXDGEnvironmentVariables}}
+This test validates XDG Base Directory Specification compliance in real environments and Linux desktop standards.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{respects\_XDG\_CONFIG\_HOME} - Uses custom config directories when XDG\_CONFIG\_HOME set
+        \item \texttt{respects\_XDG\_DATA\_HOME} - Uses custom data directories when XDG\_DATA\_HOME set
+        \item \texttt{falls\_back\_to\_home\_directory} - Falls back to \textasciitilde/.config and \textasciitilde/.local/share appropriately
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestConfigurationPersistence}}
+This test validates configuration loading and directory creation in real environments.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{creates\_directories\_correctly} - Creates proper directory structure with correct paths
+        \item \texttt{succeeds\_without\_existing\_files} - Works without pre-existing configuration files
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestDefaultConfiguration}}
+This test validates default configuration behavior and sensible defaults.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{provides\_default\_values} - Sets appropriate default values for all config fields
+        \item \texttt{creates\_necessary\_directories} - Creates required directories with correct permissions (0755)
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestConfigurationDirectoryStructure}}
+This test validates complete application directory structure creation with proper hierarchy.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{creates\_complete\_directory\_structure} - Creates full XDG directory hierarchy
+        \item \texttt{directory\_permissions\_are\_correct} - Sets proper directory permissions
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestConfigurationIsolation}}
+This test validates configuration isolation between different environments and multi-user scenarios.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{multiple\_configs\_with\_different\_environments} - Ensures different configs don't interfere with each other
+    \end{itemize}
+\end{itemize}

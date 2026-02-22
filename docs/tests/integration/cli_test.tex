@@ -1,0 +1,61 @@
+\subsection{CLI Tests (\texttt{cli\_test.go})}
+
+\subsubsection*{\texttt{TestHelpFlag}}
+This test validates help flag functionality in the compiled binary and usage information display.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{long help flag} - Tests --help flag behavior and output
+        \item \texttt{short help flag} - Tests -h flag behavior and output
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestVersionFlag}}
+This test validates version flag functionality in the compiled binary and version information display.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{long version flag} - Tests --version flag output
+        \item \texttt{short version flag} - Tests -v flag output
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestInvalidCommand}}
+This test validates error handling for invalid CLI commands and graceful failure handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{invalid command} - Tests response to unrecognized commands
+        \item \texttt{typo in command} - Tests response to misspelled commands
+        \item \texttt{empty args} - Tests response when no arguments provided
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestListCommandEmpty}}
+This test validates list command behavior when no presets exist and empty state handling.
+\begin{itemize}
+    \item \textbf{Tests}: List command with empty preset directory shows appropriate message
+\end{itemize}
+
+\subsubsection*{\texttt{TestSaveCommandInvalidName}}
+This test validates save command robustness with various invalid input scenarios.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{empty name} - Tests save with empty preset name
+        \item \texttt{whitespace only} - Tests save with whitespace-only names
+        \item \texttt{special characters} - Tests save with special characters in names
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestDeleteCommandNonExistent}}
+This test validates delete command error handling for missing presets.
+\begin{itemize}
+    \item \textbf{Tests}: Delete command behavior with non-existent preset names
+\end{itemize}
+
+\subsubsection*{\texttt{TestBinaryExecution}}
+This test validates binary execution characteristics and process management.
+\begin{itemize}
+    \item \textbf{Tests}: Binary behavior, performance, and proper execution
+\end{itemize}

@@ -1,0 +1,53 @@
+\subsection{Preset Management Tests (\texttt{preset\_test.go})}
+
+\subsubsection*{\texttt{TestNewManager}}
+This test validates preset manager initialization with configuration dependencies.
+\begin{itemize}
+    \item \textbf{Tests}: Creates manager with valid config and verifies non-nil return
+\end{itemize}
+
+\subsubsection*{\texttt{TestSavePreset}}
+This test validates core preset saving functionality, complete save operation from layout data to file creation.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{successful save} - Saves valid preset data and creates JSON file
+        \item \texttt{save preset with empty name} - Handles empty preset names with error
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestLoadPreset}}
+This test validates preset loading and validation functionality with file reading, JSON parsing, and data validation.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{load existing preset} - Loads and validates previously saved preset
+        \item \texttt{load non-existent preset} - Handles missing preset files with error
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestDeletePreset}}
+This test validates preset deletion functionality and file removal with cleanup operations.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{delete existing preset} - Removes preset file and verifies deletion
+        \item \texttt{delete non-existent preset} - Handles deletion of missing presets
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestExistsPreset}}
+This test validates preset existence checking functionality without loading content.
+\begin{itemize}
+    \item \textbf{Tests}: Correctly identifies existing and non-existing presets
+\end{itemize}
+
+\subsubsection*{\texttt{TestListPresets}}
+This test validates preset enumeration and listing functionality with directory scanning.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{empty list} - Handles empty preset directory
+        \item \texttt{list with presets} - Lists multiple saved presets and validates contents
+    \end{itemize}
+\end{itemize}

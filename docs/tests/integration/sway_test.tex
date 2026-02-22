@@ -1,0 +1,52 @@
+\subsection{Sway Environment Tests (\texttt{sway\_test.go})}
+
+\subsubsection*{\texttt{TestSwayAvailability}}
+This test validates Sway window manager detection and availability with graceful degradation.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{swaymsg command availability} - Tests swaymsg detection in PATH
+        \item \texttt{sway client creation without swaymsg} - Tests failure handling when Sway unavailable
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSwayConnectionAttempts}}
+This test validates live connection to running Sway instance with real Sway v1.11.0 integration.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{get sway version} - Retrieves live Sway version information
+        \item \texttt{get sway tree} - Fetches complete workspace tree from live environment
+        \item \texttt{get sway workspaces} - Gets workspace list from running Sway
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSwayJSONParsing}}
+This test validates JSON parsing of complex Sway data structures and Sway IPC response handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{parse sway version JSON} - Version information JSON parsing and validation
+        \item \texttt{parse sway workspace JSON} - Workspace data structure JSON parsing
+        \item \texttt{parse complex sway tree JSON} - Complex tree with idle\_inhibitors and nested structures
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSwayCommandTimeout}}
+This test validates Sway command execution performance and timeout handling.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{version command completes quickly} - Version command performance validation (< 10 seconds)
+        \item \texttt{tree command completes quickly} - Tree command performance validation
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{\texttt{TestSwayErrorHandling}}
+This test validates error handling and degradation for Sway operations.
+\begin{itemize}
+    \item \textbf{Tests}:
+    \begin{itemize}
+        \item \texttt{handles sway not running} - Graceful handling when Sway is not available
+    \end{itemize}
+\end{itemize}
