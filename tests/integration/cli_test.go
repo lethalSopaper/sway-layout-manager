@@ -91,7 +91,7 @@ func TestHelpFlag(t *testing.T) {
 				"list",
 				"delete",
 				"Commands:",
-				"Options:",
+				"Flags:",
 			}
 
 			for _, section := range expectedSections {
