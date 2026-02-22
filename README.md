@@ -41,13 +41,13 @@ cd sway-layout-manager
 2. Build the executable:
 
 ```bash
-go build -o swaylayoutmgr ./cmd/swaylayoutmgr
+go build -o ./build/swaylayoutmgr ./cmd/swaylayoutmgr
 ```
 
 3. (Optional) Install to your system:
 
 ```bash
-sudo mv swaylayoutmgr /usr/local/bin/
+sudo mv ./build/swaylayoutmgr /usr/local/bin/
 ```
 
 ## Usage
