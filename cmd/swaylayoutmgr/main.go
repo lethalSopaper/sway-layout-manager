@@ -37,6 +37,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	flags, command, args := cli.ParseFlags(os.Args[1:])
+
+	// handle init command
+	if command == "init" {
+		handleInit(cfg, flags)
+		return
+	}
+
 	swayClient, err := sway.NewClient()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to connect to Sway: %v\n", err)
@@ -46,8 +54,12 @@ func main() {
 	parser := layout.NewParser(swayClient)
 	manager := preset.NewManager(cfg)
 
-	// parse flags and command
-	flags, command, args := cli.ParseFlags(os.Args[1:])
+	// merge config with flags
+	presetName := ""
+	if len(args) > 0 {
+		presetName = args[0]
+	}
+	flags = config.MergeConfig(cfg.Settings, flags, command, presetName)
 
 	// command parser
 	switch command {
@@ -703,6 +715,27 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// generates a default configuration file
+func handleInit(cfg *config.Config, flags *cli.CommandFlags) {
+	configPath := cfg.ConfigPath()
+
+	// check if config already exists
+	if _, err := os.Stat(configPath); err == nil && !flags.Overwrite {
+		fmt.Fprintf(os.Stderr, "Error: Config file already exists at %s\n", configPath)
+		fmt.Fprintf(os.Stderr, "Use --overwrite to replace it.\n")
+		os.Exit(1)
+	}
+
+	// generate default config
+	if err := config.GenerateDefaultConfig(configPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to create config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Created default configuration at %s\n", configPath)
+	fmt.Printf("Edit this file to customize your defaults.\n")
 }
 
 // formats a warning message for incompatible flags

@@ -9,6 +9,7 @@ Commands:
   load <name>    Restore a saved layout preset
   list           List all saved layout presets
   delete <name>  Delete a saved layout preset
+  init           Generate a default configuration file
 
 Flags:
   --skip-workspace=<id>[,<id>...]   Skip workspaces by number or name (comma-separated)
@@ -34,3 +35,6 @@ Notes:
   - Applications are relaunched in their original workspaces and positions
   - Floating windows and fullscreen states are restored
   - Supports Flatpak, Snap, and native applications
+  - Presets path: ~/.local/share/sway-layout-manager/
+  - Configuration file: ~/.config/sway-layout-manager/config.yaml
+  - Command-line flags override configuration file settings

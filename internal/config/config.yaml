@@ -1,0 +1,85 @@
+# Sway Layout Manager Configuration File
+# Located at: ~/.config/sway-layout-manager/config.yaml
+
+# General Settings
+general:
+  # Custom data directory for storing presets (empty = use XDG_DATA_HOME)
+  data_dir: ""
+
+  # Default preset name pattern (uses Go time format)
+  # %Y=year, %m=month, %d=day, %H=hour, %M=minute, %S=second
+  default_preset_name: "layout-%Y-%m-%d-%H-%M-%S"
+
+# Default Save Behavior
+save:
+  # Automatically overwrite existing presets
+  overwrite: false
+
+  # Skip specific workspaces (comma-separated list)
+  skip_workspaces: []
+
+  # Only capture specific workspaces (mutually exclusive with skip_workspaces)
+  only_workspaces: []
+
+  # Skip applications by app_id or class
+  skip_apps: []
+
+  # Only capture specific applications
+  only_apps: []
+
+  # Ignore floating windows when saving layout
+  ignore_floating: false
+
+  # Auto-export format (leave empty to disable)
+  export_format: ""
+
+# Default Load Behavior
+load:
+  # Clear current workspace before restoring
+  clear: false
+
+  # Clear all workspaces before restoring
+  clear_all: false
+
+  # Reuse all existing windows when possible
+  reuse_all: false
+
+  # Reuse specific applications
+  reuse_apps: []
+
+  # Focus specific workspace after restore
+  focus_workspace: ""
+
+  # Focus specific app after restore
+  focus_app: ""
+
+# Synchronization Timing (milliseconds)
+# Adjust these values based on your hardware performance
+timing:
+  # Delay after spawning a window (100-500ms recommended)
+  window_spawn_delay: 400
+
+  # Delay after switching workspaces (50-200ms recommended)
+  workspace_switch_delay: 100
+
+  # Delay for focus to settle (50-200ms recommended)
+  focus_settle_delay: 100
+
+  # Final delay after restore completes (100-500ms recommended)
+  post_restore_delay: 200
+
+# Preset-Specific Overrides
+# Define custom settings for individual presets
+presets:
+  # Example: work preset with custom behavior
+  # work:
+  #   load:
+  #     clear: true
+  #     focus_workspace: "1"
+  #   save:
+  #     skip_workspaces: ["scratch"]
+
+  # Example: home preset
+  # home:
+  #   load:
+  #     reuse_all: true

@@ -1,0 +1,45 @@
+\newpage
+
+\section{Phase 5: Sway Layout Manager Configuration System}
+
+This phase focuses on the development of a centralized configuration system for SwayLayoutManager. By implementing program specific settings, this phase enables user-defined defaults, streamlining the use of the CLI tool and reducing the need to repeatedly provide complex flag combinations for standard operations.
+
+\subsection{Objectives}
+
+\begin{itemize}
+    \item Implement a global configuration file (e.g., YAML, TOML, or JSON) to manage persistent user preferences.
+    \item Define customizable default behaviors for \texttt{save} and \texttt{load} operations to minimize repetitive flag usage.
+    \item Establish user-adjustable parameters for restoration synchronization, such as strategic delays and timeouts.
+    \item Ensure a clear hierarchy of configuration precedence, where command-line flags override configuration file defaults.
+\end{itemize}
+
+\subsection{Configuration File Implementation}
+
+The tool will introduce support for a user-level configuration file, typically located at \texttt{\~{}/.config/sway-layout-manager/config.yaml}. This file will govern the baseline behavior of the command-line interface.
+
+\subsubsection{Configuration Schema}
+
+The configuration file will be structured into several logical sections:
+
+\begin{itemize}
+    \item \textbf{General Settings:} Definitions for default directories, such as custom paths for saving, loading, and exporting presets if they differ from the default \texttt{presets} folder, also it will include options for preset save an restoration behavior, based on the flags defined in Phase 4.
+    \item \textbf{Synchronization Timing:} User-adjustable values for the strategic delays utilized in the restoration logic. This allows users on varying hardware to tweak the 100ms--400ms stabilization windows for optimal performance and layout reliability.
+    \item \textbf{Preset Preferences:} Default layout exclusions or inclusions, enabling users to permanently ignore certain scratchpad or temporary workspaces without needing to type the \texttt{-{}-skip-workspace} flag on every run.
+    \item \textbf{Preset:} Options for a specific preset, this will be a section that allows user to define settings for specific preset(s), this section(s) will override general settings for the preset(s) defined in it, this will allow users to have different default behaviors for different presets.
+\end{itemize}
+
+\subsubsection{Configuration Hierarchy}
+
+\begin{enumerate}
+    \item \textbf{Command-Line Flags:} Explicit flags passed during execution (e.g., \texttt{-{}-clear}) will have a higher precedence than any settings defined in the configuration file, ensuring that users can override defaults on a per-command basis when necessary.
+    \item \textbf{Configuration File:} Settings defined in the \texttt{\~{}/.config/sway-layout-manager/config.yaml} file will act as the secondary source of truth.
+    \item \textbf{Hardcoded Defaults:} If a setting is absent from both the CLI arguments and the configuration file, the application will fall back to its internal defaults.
+\end{enumerate}
+
+\subsection{Implementation Considerations}
+
+\begin{itemize}
+    \item \textbf{Backward Compatibility:} The introduction of the configuration system must not break the parsing and restoration of JSON presets created during Phases 2 and 3.
+    \item \textbf{Validation and Error Handling:} The CLI must rigorously validate the configuration file schema upon startup. If the file contains invalid syntax or unsupported fields, the tool should provide meaningful error messages indicating the exact line and nature of the configuration error before halting execution.
+    \item \textbf{Default Generation:} If no configuration file is found, the tool should operate seamlessly on internal defaults, and optionally provide a command (e.g., \texttt{swaylayoutmgr init}) to generate a boilerplate configuration file for the user.
+\end{itemize}

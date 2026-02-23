@@ -8,9 +8,10 @@ import (
 
 // Config contains configuration paths and settings
 type Config struct {
-	DataDir string
-	ConfigDir string
+	DataDir     string
+	ConfigDir   string
 	DefaultName string
+	Settings    *Settings // loaded configuration settings
 }
 
 // constructor
@@ -25,6 +26,22 @@ func NewConfig() (*Config, error) {
 	// directory where config files are stored
 	if err := config.setupConfigDir(); err != nil {
 		return nil, fmt.Errorf("failed to setup config directory: %w", err)
+	}
+
+	// load configuration settings
+	settings, err := config.LoadOrDefault()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	config.Settings = settings
+
+	// override data directory if specified in config
+	if settings.General.DataDir != "" {
+		config.DataDir = settings.General.DataDir
+		// ensure custom data directory exists
+		if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create custom data directory %s: %w", config.DataDir, err)
+		}
 	}
 
 	return config, nil
